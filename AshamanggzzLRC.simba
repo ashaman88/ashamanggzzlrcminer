@@ -22,7 +22,7 @@ Const
   SFS = True;                     //Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work).
   JIC = True;                     //If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false.
   DMP = True;                     //If the SPS Maps aren't found, Download them and save them automatically. Fully optional.. Check the GrabMaps Funtion.
-  DTM = False;                    //Use DTM Method? IN BETA. Faster, may or may not be more accurate aka may be slower
+  DTM = True;                     //Use DTM Method? IN BETA. Faster, may or may not be more accurate aka may be slower
 
 Procedure DeclarePlayers;
 Begin
@@ -125,14 +125,15 @@ Var
   T: Integer;
 Begin
   Repeat
+    MarkTime(T);
     SRL_ResetNavBar;
-    Result := (GetColor(472, 490) = 16777215);
     If TimeFromMark(T)>Time Then
     Begin
       Result:=False;
       Exit;
     End;
-  Until Result;
+  Until (GetColor(472, 490) = 16777215);
+  Result:=True;
 End;
 
 
@@ -452,7 +453,8 @@ Begin
   Result:=False;
 
   If Not WaitLoggedIn(1000) Then
-  Begin                                                         //Method
+  Begin
+    Writeln('poo');                                                    //Method
     LoginPlayer;
     ClickNorth(SRL_ANGLE_HIGH);
     Result:=True;
@@ -893,61 +895,47 @@ End;
 Function GoldDTMs: Boolean;
 Var
   I,T: Integer;
-  RDTM: Extended;
 Begin
   Result:=False;
 
   MarkTime(T);
-  For I:=0 To 3 Do                                                    //Method
+  For I:=0 To 1 Do                                                    //Method
   Begin
     Case Spot Of
       1:
       Begin
         A:=140;  B:=120;  C:=251;  D:=259;
         Case I Of
-          0: SpotDTM := DTMFromString('mrAAAAHic42BgYDgFxPuA+DgQXwXiDUC8GYhfAvEtIN4KxAuBeA4QL4aqPQGV2wnEKRHODBkR1gxWOlIMwU5aDLFB9gwZ0W4MVemuDC7mcgxcQDX4MCMBDAMA/AMTSA==');
-          1: SpotDTM := DTMFromString('m1gAAAHic42JgYDgLxDuB+AgQr4WyTwHxYyC+DcQXgXgNEG8A4llQvBKIFwPxCSBeB8TbgHgPEG8G4vQwS4bcaFuGOF8jMA3C5SlODE25ngzpUS4MdVnuDKkRzgxcQLXEYEYiMQIAAHMXGWQ=');
-          2: SpotDTM := DTMFromString('mlwAAAHicY2dgYJAFYl4gVgNibiAWBmIuBgjgB2JxqDxMjBGI+YC4ONGRwdfZmKE+250hM8aNITPCmqE63ZUhNdQSrBYXZsSDoQAApHQIQw==');
-          3: SpotDTM := DTMFromString('mlwAAAHicY2dgYJAGYi0glgBiDgYI4ARiPiAWBWIhINYDYkmoGDdUTXmKM0NznieYDvG0YCiMt2fIjvNgSAwwYeACyuPCjHgwFAAA0MIIqA==')
+          0: SpotDTM := DTMFromString('mrAAAAHic42BgYMgC4jIgrgPiEiDOBuJQII4A4mSoWCEQlwJxORBPBOIqIC6A6k2JcGZoyvUEYxdzOYayFGeGhBAHMJ0SYsnABVQDwzxIbBhmJIBhAAC3EQ+N');
+          1:
+          Begin
+            SpotDTM := DTMFromString('mGQAAAHicY2RgYHBnZGCYAKSD3M0YQIARRAAAGX4Bqg==');
+            FreeDTM(SpotDTM);
+            If Debug Then
+              Writeln ('DTM search completed in '+  IntToStr(timefromMark(t)) + ' msec');
+            Exit;
+          End;
         End;
       End;
       2:
       Begin
         A:=125;  B:=44;   C:=400;  D:=292;
         Case I Of
-          0: SpotDTM := DTMFromString('mrAAAAHic42BgYBABYlUgVmGAAA4glgdiKSAWBmJeIGaFynECsRxUDwOUTggwY/C0VmBwMZdjcLFUY/BzMWGIDrBlqMtyZ0gLs2TgAarhwoJ5oJiRAIYBAPZ5CBE=');
-          1: SpotDTM := DTMFromString('mwQAAAHic42RgYNgKxCegeBkQTwXiy0C8GYj3AvF6qBqQ3CYg3g2lQeL7oeIrgTjMw4DB1UKOwcFEhiEl2JwhPcySoTDeniE1xIKhJtMNLMYFVEcIMxKB4QAA4TIVDA==');
-          2: SpotDTM := DTMFromString('m6wAAAHic42ZgYFACYlkgtgdiMyDWhvJBwASIzYFYC4hFgVgCiPmBmBNKcwCxAhDzQvWwQ/WJA3FioCmDo4kMQ3ywPYO9kTRDZaozQ2qoBRgHuZuB5UBiudE2DDxA9eiYHwdmJAEjAQCKiwyB');
-          3: SpotDTM := DTMFromString('mlwAAAHicY2dgYFgGxFugeBUQrwbiw0DcB8SXgPg4EO8H4ltQ8ctQscRQRwY3C3kGDysFhso0F4bqdFeG3BhbhuwoGwYeoDwuzIgHQwEA3YcRLQ==');
+          0: SpotDTM := DTMFromString('mrAAAAHic42BgYFgJxBOBeBoQLwbiFUC8BYg3Q3EqEJcBcR0QVwJxDBDHA3EkEGcAcXasO0NhvD1DTYYrQ2aMG0NdlhuDl7UCg7OpLIODsQwDF1ANPsxIAMMAAGYUEC0=');
+          1: SpotDTM := DTMFromString('mrAAAAHic42BgYFgDxDuAeBsQ7wfiI0C8HsqfAsTVjAwMRUBcCcRVQNwCxIVA3A7E9UCcGePG4GOryOBgLMOQH2vHUBhvz1CX5cYQ6m3JYGcozcAFNAMX5gdiRgIYBgC8txDN');
         End;
       End;
       3:
       Begin
         A:=MSX1; B:=MSY1; C:=MSX2; D:=292;
         Case I Of
-          0: SpotDTM := DTMFromString('m6wAAAHic42ZgYPgPxD+BWIiRgeEdkGYH0sJAzALEH4H8P0BsCWTfAtJ3gfg0EF8D4gdA/BQqdh4q9hiIL0HFMiOsGLKjbBgi3NQYPCzlGZxNZRlyo20ZihMcGII9zRmy49wZksKcGMpTnBj4geqJxYwkYCQAACOqGjU=');
-          1: SpotDTM := DTMFromString('mrAAAAHic42BgYOBjZGCQAWIFINYC4r9AMR1GiLgAlAaJsQBpcSDmAWJ2IBaDintYKTBUprkw5MbYMuTH2TGUpzgzhLmqgcUt9SQZ+IFq8GFGAhgGALEKC3Q=');
-          2:
-          Begin
-            SpotDTM := DTMFromString('mGQAAAHicY2RgYHBnZGCYAKSD3M0YQIARRAAAGX4Bqg==');
-            FreeDTM(SpotDTM);
-            If Debug Then
-              Writeln ('DTM search completed in '+  IntToStr(timefromMark(t)) + ' msec');
-            Exit;
-          End;
-          3:
-          Begin
-            SpotDTM := DTMFromString('mGQAAAHicY2RgYHBnZGCYAKSD3M0YQIARRAAAGX4Bqg==');
-            FreeDTM(SpotDTM);
-            If Debug Then
-              Writeln ('DTM search completed in '+  IntToStr(timefromMark(t)) + ' msec');
-            Exit;
-          End;
+          0: SpotDTM := DTMFromString('mlwAAAHicY2dgYKgC4mYgLgbiPCjOAOJyIHYFYmsgtgFiFyD2AWI/IA4A4pQIZ4acaFuGIA9zBhdzOTCuyXBjqM/2YOACymPDPEDMiAdDAQB8UAvO');
+          1: SpotDTM := DTMFromString('mrAAAAHic42BgYDjPzMBwBIovAPFVID4LxFegYpsYGRi2AvFeIN4DxBuBeBUU7wTiuix3BldzOQYfW0WG3HgPhuwoG4bcaFuG/Fg7Bg9LeQYuoB34MCMBDAMANJMTtw==');
         End;
       End;
     End;
 
-    If FindDTMRotated(SpotDTM,GoldX,GoldY,A,B,C,D,-Pi,Pi,Pi/30,RDTM) Then                  //Method
+    If FindDTM(SpotDTM,GoldX,GoldY,A,B,C,D) Then                  //Method
     Begin
       Result:=True;
       If Debug Then
@@ -1446,7 +1434,7 @@ end;
 
 Procedure RequirementsCheck;
 begin
-  Method      := 1;
+  Method      := 0;
   If (Not GrabMaps) then
     RaiseException(erCustomError, 'SPS Maps Do Not Exist OR They Are Named Incorrectly!');
 end;
@@ -2377,6 +2365,7 @@ Begin
     FunctionStop:= 'Setup: Entered';
 
   RequirementsCheck;
+  AutoUpdateMe;
   ClearDebug;
 
   {$IFDEF SIMBAMAJOR980}
@@ -2400,6 +2389,11 @@ Begin
   ClearDebug;
 
   Writeln('Starting up...');
+  If GetSkillLevel(Skill_Mining) < 80 Then
+  Begin
+    Writeln('Ah man, sorry you need at least 80 mining to run this script');
+    TerminateScript;
+  End;
   SPS_Setup(RUNESCAPE_SURFACE, ['0_0LRC']);
   ClickNorth(SRL_ANGLE_HIGH);
   UseFindMod:=False;
