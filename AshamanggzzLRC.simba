@@ -1434,7 +1434,7 @@ end;
 
 Procedure RequirementsCheck;
 begin
-  Method      := 0;
+  Method      := 1;
   If (Not GrabMaps) then
     RaiseException(erCustomError, 'SPS Maps Do Not Exist OR They Are Named Incorrectly!');
 end;
@@ -2364,6 +2364,7 @@ Begin
   If Debug Then
     FunctionStop:= 'Setup: Entered';
 
+  ClearDebug;
   RequirementsCheck;
   AutoUpdateMe;
   ClearDebug;
@@ -2386,7 +2387,6 @@ Begin
 
   DeclarePlayers;
   LoginPlayer;
-  ClearDebug;
 
   Writeln('Starting up...');
   If GetSkillLevel(Skill_Mining) < 80 Then
