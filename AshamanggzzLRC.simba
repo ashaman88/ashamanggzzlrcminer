@@ -50,7 +50,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.1';
+  ScriptVersion = '6.2';
   E = 200;
   F = 462;
   Debug = False;
@@ -2367,7 +2367,6 @@ Begin
   ClearDebug;
   RequirementsCheck;
   AutoUpdateMe;
-  ClearDebug;
 
   {$IFDEF SIMBAMAJOR980}
     SMART_SERVER := 10;
