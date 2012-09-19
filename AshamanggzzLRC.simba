@@ -23,6 +23,11 @@ Const
   JIC = True;                     //If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false.
   DMP = True;                     //If the SPS Maps aren't found, Download them and save them automatically. Fully optional.. Check the GrabMaps Funtion.
   DTM = True;                     //Use DTM Method? IN BETA. Faster, may or may not be more accurate aka may be slower
+  SwitchWorlds = True;            //Switch worlds after a break?
+  BreakIn      = 600;             //How long before we take a break? (minutes)
+  BreakFor     = 15;              //How long will we break for? (minutes)
+  Bir          = 13;              //Random minutes to add/subtract from how long until we break
+  Bfr          = 7;               //Random minutes to add/subjtract from break duraction
 
 Procedure DeclarePlayers;
 Begin
@@ -50,7 +55,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.2';
+  ScriptVersion = '6.3';
   E = 200;
   F = 462;
   Debug = False;
@@ -59,6 +64,7 @@ Const
 
 Var
  T,Spot,ET,SpotDTM,A,B,C,D,GoldX,GoldY: Integer;
+ W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks: Integer;
  OreCount,XP,OneOre,BarDTM,HP,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
  XPH,OresPH: Extended;
  HeatAlch,SafeBank: Boolean;
@@ -83,7 +89,7 @@ Begin
   Begin
     WriteLn('Newer script version online!');
     WriteLn('Autoupdating to newer version.');
-    NewScript := GetPage('http://ashamanggzzlrcminer.googlecode.com/git/ashamanggzzlrcminer.simba');
+    NewScript := GetPage('http://ashamanggzzlrcminer.googlecode.com/git/AshamanggzzLRC.simba');
     NeiFeilNennen := ScriptPath+ 'Ashaman&ggzzLRC V'+OnlineVersion+' by Ashaman88&Brandon.simba';
     Neifile := Rewritefile(NeiFeilNennen, true);
     Try
@@ -104,6 +110,12 @@ End;
 Procedure SetDTM;
 Begin
   Writeln('Loading viruses...I mean DTMs');
+
+  W := (BreakIn * 60000);
+  X := (BreakFor * 60000);
+  Y := RandomRange(-BIR * 60000, BIR * 60000);
+  Z := RandomRange(-BFR * 60000, BFR * 60000);
+
   GoldDTM := DTMFromString('mWAAAAHicY2FgYJjBxMDQB8SzgHgxEAcyMjAEAbEHEHsD8eZ+KYZEPzOGTb2SDJkh1gz8QD3ImBENgwAA4fkIew==');
   BarDTM:= DTMFromString('mbQAAAHicY2VgYJjPxMCwBIgXA/FsIF4FxAqMDAzyQKwCxKpArAjEC+rFGC4tlwXjSHcehhur5Rj4gfrRMSMWDAYA8jMK5w==');
   CoalDTM := DTMFromString('mggAAAHicY2NgYMhjYmAoAuIkIM4C4gogLgHiJ0C52wwQ+g0QPwTiF0Csri4HxuGuBgzRnsYMWSHWDJKSwgz8QDlsmBEHhgAAKPUMHA==');
@@ -120,12 +132,53 @@ Begin
     FreeDTM(SpotDTM);
 End;
 
+Function BreakHandler(BreakIn, BreakFor, randBreakIn, randBreakFor: Integer): Boolean;
+Var
+  H,M,S: Integer;
+Begin
+  If Not LoggedIn Then
+    Exit;
+
+  If (HowManyPlayers = 1) Then
+  Begin
+    If (GetTimeRunning < ((W) + (Y) + BreakRounds)) Then
+      Exit Else
+      If (GetTimeRunning > ((W) + (Y) + BreakRounds)) Then
+      Begin
+        RealBTime := ((X+Z)/60000);
+        Writeln('Taking a break for about ' + IntToStr(RealBTime) + ' minutes.');
+        Logout;
+        MarkTime(CurrentBTime);
+        Repeat
+          Wait(21000);
+          ConvertTime((X+Z)-TimeFromMark(CurrentBTime),H,M,S);
+          Writeln('Breaktime left: '+IntToStr(H)+':'+IntToStr(M)+':'+IntToStr(S));
+        Until(TimeFromMark(CurrentBTime)>(X+Z));
+        Writeln('Logging in.');
+        If SwitchWorlds Then
+          If LoginPlayerToLob Then
+            ChangeWorld(RandomWorld(True, False)) Else
+            LoginPlayer;
+        Wait(4000);
+        Result := LoggedIn;
+        ClickNorth(SRL_ANGLE_HIGH);
+        IncEx(BreakRounds, (W) + (X));
+        Inc(TotalBreaks);
+        Writeln('The next break will occur in about ' + IntToStr(BreakIn) + ' minutes.');
+        W := (BreakIn * 60000);
+        X := (BreakFor * 60000);
+        Y := RandomRange(-BIR * 60000, BIR * 60000);
+        Z := RandomRange(-BFR * 60000, BFR * 60000);
+      End;
+  End;
+End;
+
 Function WaitLoggedIn(Time:Integer): Boolean;
 Var
   T: Integer;
 Begin
+  MarkTime(T);
   Repeat
-    MarkTime(T);
     SRL_ResetNavBar;
     If TimeFromMark(T)>Time Then
     Begin
@@ -135,7 +188,6 @@ Begin
   Until (GetColor(472, 490) = 16777215);
   Result:=True;
 End;
-
 
 Function HPLevel: Integer;                                        //Method
 Var
@@ -247,6 +299,192 @@ Begin
   MouseSpeed := j;
 End;
 
+Function CheckStuff: Boolean; Forward;
+Function Runaways: Boolean; Forward;
+
+(*
+MmmWeGotOff
+~~~~~~~~
+
+.. code-block:: pascal
+
+    Procedure MmmWeGotOff(RedTu: Variant);
+
+Moves the mouse to the choosen side of the screen, replicating
+the use of a human to move thier mouse "off-screen" as if
+browsing another part of their computer.
+(What do you do when you browsing "other websites?")
+Int Type:
+
+    1 = Go top side, off-screen
+    2 = Go left side, off-screen
+    3 = Go bottom side, off-screen
+    4 = Go right side, off-screen
+
+.. note::
+
+  by Le Jingle.
+
+Example:
+
+.. code-block:: pascal
+
+  MmmWeGotOff(Random(4), 0, 0);
+
+*)
+Procedure OffMM(RedTu, LeWait, rWait: Integer);
+Var
+  W,H,RX,RY,T,RT: Integer;
+Begin
+  GetClientDimensions(W,H);
+  H:=H+50;
+  RX := RandomRange(0, W);
+  RY := RandomRange(0, H);
+  Case (RedTu) Of
+    0..1: HumanMMouse(W/2, RandomRange(-110,-60), RX, 0);
+    2: HumanMMouse(RandomRange(-50,-10), H/2, 0, RY);
+    3: HumanMMouse(W/2, h+RandomRange(10,50), RX, 0);
+    4: HumanMMouse(W+RandomRange(10,50), H/2, 0, RY);
+  End;
+  RT:=(Random(rWait));
+  MarkTime(T);
+  Repeat
+    CheckStuff;
+    Runaways;
+  Until TimeFromMark(T)>(LeWait+RT);
+End;
+
+//by Home
+function AreaToBoxArray(const AreaX1, AreaY1, AreaX2, AreaY2, Width, Height: Integer): TBoxArray;
+var
+  AreaW, AreaH: Integer;
+  BoxX, BoxY: Integer;
+  x, y, i: Integer;
+begin
+  // Calculate the area dimensions
+  AreaW := AreaX2 - AreaX1 + 1;
+  AreaH := AreaY2 - AreaY1 + 1;
+
+  // Calculate the number of boxes in each dimension
+  BoxX := AreaW div Width;
+  if AreaW mod Width <> 0 then Inc(BoxX);
+  BoxY := AreaH div Height;
+  if AreaH mod Height <> 0 then Inc(BoxY);
+
+  // Set the number of boxes
+  SetLength(Result, BoxX * BoxY);
+
+  // Calculate the boxes
+  i := 0;
+  for y := 0 to BoxY - 1 do
+    for x := 0 to BoxX - 1 do
+    begin
+      Result[i] := IntToBox(AreaX1 + x * Width,
+        AreaY1 + y * Height,
+        Min(AreaX2, AreaX1 + (x + 1) * Width - 1),
+        Min(AreaY2, AreaY1 + (y + 1) * Height - 1));
+      Inc(i);
+    end;
+end;
+
+Procedure CheckMovingObjs(RClick: Boolean);
+var
+  TBA: TBoxArray;
+  MidBox: TPoint;
+  TIA: TIntegerArray;
+  H,I,J,X,Y,T: Integer;
+  TPA,PBox: TPointArray;
+  RCOpts: Array of TOptions;
+begin
+  if not LoggedIn then Exit;
+
+  ColorToleranceSpeed(1);
+  SetColorSpeed2Modifiers(0.2, 0.2);
+
+  PBox := TPAFromBox(IntToBox(240, 130, 275, 185));
+  TBA := AreaToBoxArray(MSX1, MSY1, MSX2, MSY2, 35, 35);
+  TIA := PixelShiftMulti(TBA, 300);
+
+  for H := 0 to High(TBA) do
+  begin
+    if (TIA[H] > 100) then
+    begin
+      MidBox := MiddleBox(TBA[H]);
+      SetArrayLength(TPA, Length(TPA)+1);
+      TPA[High(TPA)] := MidBox;
+    end;
+  end;
+
+  ClearTPAFromTPAWrap(TPA, PBox, TPA);
+  if (Length(TPA) < 1) then Exit;
+
+  I := Random(Length(TPA));
+  HumanMMouse(TPA[I].X, TPA[I].Y, 5, 5);
+  if RClick then
+  begin
+    ClickMouse2(False);
+    RCOpts := GetChooseOptions('All');
+    J := Length(RCOpts);
+    Wait(RandomRange(J*75, J*120));
+
+    MarkTime(T);
+    repeat
+      GetMousePos(X, Y);
+      HumanMMouse(X-10,Y-10,15,5);
+      if (TimeFromMark(T) > 5000) then
+        break;
+    until(not FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2))
+
+    if FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2) then
+      MMouse(RandomRange(MIX1,MIX2),RandomRange(MIY1,MIY2),0,0);
+  end;
+
+end;
+
+Function Antiban: Boolean;
+Var
+  I: Integer;
+Begin
+  I := Random(600);
+  Case I Of
+    1..3:
+      Begin
+        RandomRClick;
+      End;
+    4,5:
+      Begin
+        HoverSkill('Mining', False);
+        GameTab(Tab_Inv);
+      End;
+    6,7:
+      Begin
+        HoverSkill('Magic', False);
+        GameTab(Tab_Inv);
+      End;
+    8..11:
+      Begin
+        CheckMovingObjs(False);
+      End;
+    12..200:
+      Begin
+        SleepAndMoveMouse(RandomRange(400,500));
+        Result:=True;
+      End;
+    201..400:
+      Begin
+        Wait(RandomRange(250, 1500));
+        OffMM(Random(4),RandomRange(2500,4000),8000);
+        Result:=True;
+      End;
+    401..600:
+      Begin
+        Wait(RandomRange(250, 3000));
+        Result:=True;
+      End;
+  End;
+  Wait(RandomRange(250, 350));
+End;
+
 {*******************************************************************************
 
 By: Sin , edited
@@ -267,7 +505,7 @@ Begin
     End;
   Until(Inv2 < Inv1);
   Result := True;
-end;
+End;
 
 function CustomLoginPlayer: Boolean;
 var
@@ -426,9 +664,13 @@ end;
 
 
 Procedure ProgressReport;
+Var
+  TTB: Integer;
 Begin
   If (Not Debug) And (Not AnimationDebug) And (Not POSDebug) Then
     ClearDebug;
+
+  TTB := (((W) + (Y) + BreakRounds)-GetTimeRunning);
 
   OreCount := OreCount + CountItems('DTM',GoldDTM,[])+CountItems('DTM',CoalDTM,[]);
   XP := (GetXPBarTotal - StartingExperience);
@@ -443,6 +685,7 @@ Begin
   Writeln('Experience/Hour: ' + ToStr(XPH));
   Writeln('Ores/H: ' + ToStr(OresPH));
   Writeln('================================');
+  Writeln('Time until break: '+MsToTime(TTB, Time_Bare));
 
   Stats_IncVariable('Gold Ore (Mined)', CountItems('DTM',GoldDTM,[]));
   Stats_Commit;
@@ -453,8 +696,7 @@ Begin
   Result:=False;
 
   If Not WaitLoggedIn(1000) Then
-  Begin
-    Writeln('poo');                                                    //Method
+  Begin                                                  //Method
     LoginPlayer;
     ClickNorth(SRL_ANGLE_HIGH);
     Result:=True;
@@ -1699,41 +1941,12 @@ begin
     Writeln('FINISHED HEATING');
 End;
 
-function MiningAni: Boolean;
-var
-  MeBox: TBox;
-begin
-  MeBox := IntToBox(245, 150, 255, 175);
-  Result := (AveragePixelShift(MeBox, 250, 500) > 100);
-end;
-
-function RockAni: Boolean;
-var
-  MeBox: TBox;
-begin
-  MeBox := IntToBox(179, 176, 203, 194);
-  Result := (AveragePixelShift(MeBox, 250, 500) > 100);
-end;
-
-function RockAniCount: Integer;
-var
-  MeBox: TBox;
-begin
-  MeBox := IntToBox(179, 176, 203, 194);
-  Result := (AveragePixelShift(MeBox, 250, 500));
-end;
-
-Function GetMyAnimationCount(AnimationTime: Integer): Integer;
-var
-  MeBox: TBox;
-begin
-  MeBox:= IntToBox(245, 150, 255, 175);
-  Result:= AveragePixelShift(MeBox, 250, AnimationTime);
-end;
-
 Procedure Mining;
 Var
   X,Y,AniTimer,BegInv,BegXP,XPInvTimer: Integer;
+  L, I: Integer;
+  B: TBoxArray;
+  BMP, BMP2,PixelShifts: TIntegerArray;
 Begin
   If Debug Then
     FunctionStop:= 'Mining: Entered';
@@ -1750,6 +1963,18 @@ Begin
   BegXP:=GetXPBarTotal;
   MarkTime(AniTimer);
   MarkTime(XPInvTimer);
+
+  If Spot=1 Then
+  Begin
+    B:=[IntToBox(176, 162, 213, 194)];
+    L := Length(B);
+    SetLength(BMP, L);
+    SetLength(BMP2, L);
+    SetLength(PixelShifts, L);
+
+    For I := 0 to (L - 1) Do
+      BMP[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
+  End;
 
   Repeat
     If (FindSpinTicket) Or (CheckStuff) Then
@@ -1783,33 +2008,38 @@ Begin
         Writeln('Xp increased');
     End;
 
-    If AnimationDebug Then
-      If Spot <> 1 Then
-        Writeln('My animation: '+tostr(GetMyAnimationCount(500)));
-
-    If AnimationDebug Then
-      If Spot=1 Then
-        Writeln('Rock shift animation: '+tostr(RockAniCount));
-
-    If (Spot<>1) Then
+    If Spot=1 Then
     Begin
-      If GoldDTMs Then
-      Begin
-        MarkTime(AniTimer);
-        If Debug Then
-          Writeln('Mining animation active');
-      End;
-    End Else
-      If RockAni Then
+      For I := 0 To (L - 1) Do
+        BMP2[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
+      For I := 0 To (L - 1) Do
+        PixelShifts[I] := CalculatePixelShift(BMP[I],BMP2[I],IntToBox(0,0,(B[I].X2 - B[I].X1),(B[I].Y2-B[I].Y1)));
+      If AverageTIA(PixelShifts)>500 Then
       Begin
         If Debug Then
-          Writeln('Rock shifted');
+          Writeln('Spot 1 shifted by: '+ToStr(AverageTIA(PixelShifts)));
         Break;
       End Else
       Begin
         If Debug Then
-          Writeln('No rock shift');
+          Writeln('Average shift: '+ToStr(AverageTIA(PixelShifts)));
+        For I := 0 To (L - 1) Do
+        Begin
+          If BitmapExists(BMP[I]) Then
+            FreeBitmap(BMP[I]);
+          If BitmapExists(BMP2[I]) Then
+            FreeBitmap(BMP2[I]);
+        End;
+        For I := 0 to (L - 1) Do
+          BMP[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
         MarkTime(AniTimer);
+      End;
+    End Else
+      If WaitFunc(@GoldDTMs,1,RandomRange(2000,4000)) Then
+      Begin
+        MarkTime(AniTimer);
+        If Debug Then
+          Writeln('Mining animation active');
       End;
 
     If EE Then
@@ -1831,6 +2061,14 @@ Begin
     Begin
       If Debug Then
         Writeln('Found bank symbol');
+      If Spot=1 Then
+        For I := 0 To (L - 1) Do
+        Begin
+          If BitmapExists(BMP[I]) Then
+            FreeBitmap(BMP[I]);
+          If BitmapExists(BMP2[I]) Then
+            FreeBitmap(BMP2[I]);
+        End;
       Exit;
     End;
 
@@ -1865,7 +2103,18 @@ Begin
           MarkTime(XPInvTimer);
     End;
 
+    If Not InvFull Then
+      AntiBan;
   Until (InvFull);
+
+  If Spot=1 Then
+    For I := 0 To (L - 1) Do
+    Begin
+      If BitmapExists(BMP[I]) Then
+        FreeBitmap(BMP[I]);
+      If BitmapExists(BMP2[I]) Then
+        FreeBitmap(BMP2[I]);
+    End;
 
   If Debug Then
     Writeln('Inventory is full or spot is gone');
@@ -1989,10 +2238,12 @@ Begin
           Writeln('Found Gold, EmptySpot back to 0');
         EmptySpot:=0;
         Mining;
+        BreakHandler(BreakIn,BreakFor,Bir,Bfr);
         If (Not InvFull) And (Spot=1) Then
           GoTo SkipDown;
       End Else
       Begin
+        BreakHandler(BreakIn,BreakFor,Bir,Bfr);
         EmptySpot := EmptySpot + 1;
         If Debug Then
           Writeln('Did not find gold, emptyspot is: '+ToStr(EmptySpot));
@@ -2204,10 +2455,12 @@ Begin
           Writeln('Found Gold, EmptySpot back to 0');
         EmptySpot:=0;
         Mining;
+        BreakHandler(BreakIn,BreakFor,Bir,Bfr);
         If (Not InvFull) And (Spot=1) Then
           GoTo SkipDown;
       End Else
       Begin
+        BreakHandler(BreakIn,BreakFor,Bir,Bfr);
         EmptySpot := EmptySpot + 1;
         If Debug Then
           Writeln('Did not find gold, emptyspot is: '+ToStr(EmptySpot));
