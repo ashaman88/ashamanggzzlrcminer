@@ -16,18 +16,18 @@ Var
 
 Const
 
-  SRLStats_Username = '';         //Leave blank if you don't have a stats account
+  SRLStats_Username = '';         // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
-  EnhancedExcalibur = False;      //True to use enhanced excalibur for healing
-  SFS = True;                     //Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work).
-  JIC = True;                     //If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false.
-  DMP = True;                     //If the SPS Maps aren't found, Download them and save them automatically. Fully optional.. Check the GrabMaps Funtion.
-  DTM = True;                     //Use DTM Method? IN BETA. Faster, may or may not be more accurate aka may be slower
-  SwitchWorlds = True;            //Switch worlds after a break?
-  BreakIn      = 600;             //How long before we take a break? (minutes)
-  BreakFor     = 15;              //How long will we break for? (minutes)
-  Bir          = 13;              //Random minutes to add/subtract from how long until we break
-  Bfr          = 7;               //Random minutes to add/subjtract from break duraction
+  EnhancedExcalibur = False;      // ***True to use enhanced excalibur for healing***
+  SFS = True;                     // ***Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work)***
+  JIC = True;                     // ***If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false***
+  DMP = True;                     // ***If the SPS Maps aren't found, Download them and save them automatically, you should leave this as true***
+  DTM = True;                     // ***Use DTM Method? Faster!***
+  SwitchWorlds = False;           // ***Switch worlds after a break?***
+  BreakIn      = 600;             // ***How long before we take a break? (minutes)***
+  BreakFor     = 15;              // ***How long will we break for? (minutes)***
+  Bir          = 13;              // ***Random minutes to add/subtract from how long until we break***
+  Bfr          = 7;               // ***Random minutes to add/subjtract from break duraction***
 
 Procedure DeclarePlayers;
 Begin
@@ -38,9 +38,8 @@ Begin
   Begin
     Name        := '';
     Pass        := '';
-    PTS         := 0;               //Pouch To Summon.. 1 for Titan, 0 for nothing, 2 for Golem.
+    PTS         := 0;             // ***Pouch To Summon.. 1 for Titan, 0 for nothing, 2 for Golem***
     WorldInfo   := [77,84]
-    BoxRewards  := ['Coins', 'oins'];
     Active      := True;
   End;
 End;
@@ -55,7 +54,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.3';
+  ScriptVersion = '6.4';
   E = 200;
   F = 462;
   Debug = False;
@@ -64,7 +63,7 @@ Const
 
 Var
  T,Spot,ET,SpotDTM,A,B,C,D,GoldX,GoldY: Integer;
- W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks: Integer;
+ W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks,Timeout: Integer;
  OreCount,XP,OneOre,BarDTM,HP,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
  XPH,OresPH: Extended;
  HeatAlch,SafeBank: Boolean;
@@ -299,6 +298,14 @@ Begin
   MouseSpeed := j;
 End;
 
+Procedure HumanMouseBox(X1, Y1, X2, Y2: Integer);
+Var
+  FX, FY: Integer;
+Begin
+  GaussBox(FX,FY,X1,Y1,X2,Y2);
+  HumanMMouse(FX,FY,0,0)
+End;
+
 Function CheckStuff: Boolean; Forward;
 Function Runaways: Boolean; Forward;
 
@@ -334,23 +341,26 @@ Example:
 *)
 Procedure OffMM(RedTu, LeWait, rWait: Integer);
 Var
-  W,H,RX,RY,T,RT: Integer;
+  W,H,RX,RY,T,RT,X,Y: Integer;
 Begin
-  GetClientDimensions(W,H);
-  H:=H+50;
-  RX := RandomRange(0, W);
-  RY := RandomRange(0, H);
-  Case (RedTu) Of
-    0..1: HumanMMouse(W/2, RandomRange(-110,-60), RX, 0);
-    2: HumanMMouse(RandomRange(-50,-10), H/2, 0, RY);
-    3: HumanMMouse(W/2, h+RandomRange(10,50), RX, 0);
-    4: HumanMMouse(W+RandomRange(10,50), H/2, 0, RY);
+  GetMousePos(X,Y);
+  If (X>0) And (Y>0) Then
+  Begin
+    GetClientDimensions(W,H);
+    H:=H+50;
+    RX := RandomRange(0, W);
+    RY := RandomRange(0, H);
+    Case (RedTu) Of
+      0..1: HumanMMouse(W/2, RandomRange(-110,-60), RX, 0);
+      2: HumanMMouse(RandomRange(-50,-10), H/2, 0, RY);
+      3: HumanMMouse(W/2, h+RandomRange(10,50), RX, 0);
+      4: HumanMMouse(W+RandomRange(10,50), H/2, 0, RY);
+    End;
   End;
   RT:=(Random(rWait));
   MarkTime(T);
   Repeat
-    CheckStuff;
-    Runaways;
+    Wait(Random(200));
   Until TimeFromMark(T)>(LeWait+RT);
 End;
 
@@ -430,9 +440,10 @@ begin
     MarkTime(T);
     repeat
       GetMousePos(X, Y);
-      HumanMMouse(X-10,Y-10,15,5);
+      HumanMouseBox(MIX1,MIY1,MIX2,MIY2);
       if (TimeFromMark(T) > 5000) then
         break;
+      Wait(Random(100));
     until(not FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2))
 
     if FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2) then
@@ -451,38 +462,33 @@ Begin
       Begin
         RandomRClick;
       End;
-    4,5:
+    4..25:
       Begin
         HoverSkill('Mining', False);
         GameTab(Tab_Inv);
       End;
-    6,7:
-      Begin
-        HoverSkill('Magic', False);
-        GameTab(Tab_Inv);
-      End;
-    8..11:
+    80..150:
       Begin
         CheckMovingObjs(False);
       End;
-    12..200:
+    151..180:
+      Begin
+        CheckMovingObjs(True);
+      End;
+    181..200:
       Begin
         SleepAndMoveMouse(RandomRange(400,500));
         Result:=True;
       End;
-    201..400:
+    201..600:
       Begin
-        Wait(RandomRange(250, 1500));
-        OffMM(Random(4),RandomRange(2500,4000),8000);
-        Result:=True;
-      End;
-    401..600:
-      Begin
-        Wait(RandomRange(250, 3000));
+        Wait(RandomRange(1250, 1500));
+        //OffMM(Random(4),RandomRange(2500,4000),8000);
         Result:=True;
       End;
   End;
-  Wait(RandomRange(250, 350));
+  If InvCount<25 Then
+    Wait(RandomRange(3000,4000));
 End;
 
 {*******************************************************************************
@@ -531,13 +537,17 @@ begin
 
     Exit;
   end;
+
+  MarkTime(T);
   //Writeln('4');                                                    //Method
   if (not (LoginPlayerToLob)) then    {Get to lobby screen}
     Exit;
     //Writeln('5');
   Wait(500 + Random(500));
                           {Click Here to Play}
-                                                                 //Method
+  If TimeFromMark(T)>45000 Then
+    Exit;
+                                                                  //Method
   if (LobbyScreen) then
     MouseBox(270, 450, 490, 470, mouse_left);
 
@@ -702,13 +712,23 @@ Begin
     Result:=True;
   End;
 
-  If FindNormalRandoms Then
+  If TimeFromMark(Timeout)>120000 Then
+  Begin
+    Writeln('Nothing has happened for too long, resetting focus.');
+    SmartSetEnabled(False);
+    SmartSetEnabled(True);
+    MarkTime(Timeout);
+    ClickNorth(SRL_ANGLE_HIGH);
+    SPS_BlindWalk(Point(260, -125));
+  End;
+
+  If FindSpinTicket Or ExitSquealOfFortune Then
     If Not WaitLoggedIn(1000) Then
       TerminateScript Else                                         //Method
       Begin
         ClickNorth(SRL_ANGLE_HIGH);
         If Debug Then
-          Writeln('Found random event');
+          Writeln('Found squeal stuff');
         Result:=True;
       End;
 End;
@@ -726,7 +746,7 @@ Begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
-  BankToLowestGold:= [Point(260, -125), Point(275, -121), Point(275, -93), Point(275, -53), Point(299, -17), Point(311, 3),  Point(325, 25)];
+  BankToLowestGold:= [Point(260, -125), Point(275, -121), Point(280, -93), Point(285, -53), Point(299, -17), Point(311, 3),  Point(325, 25)];
 
   BankToHighGold:= [Point(260, -125), Point(275, -93), Point(267, -73), Point(239, -57), Point(205, -45)];
 
@@ -1006,6 +1026,7 @@ Begin
       Wait(RandomRange(20000,40000));
       RandomRClick;                                                 //Method
       CheckStuff;
+      MarkTime(Timeout);
     Until((HPLevel > (HP*10*0.65)));
 
     If Debug Then
@@ -1049,8 +1070,7 @@ Begin
 
       EEx := DTMFromString('mbQAAAHicY2VgYNjFxMBwCIjXQPFGIL7ByMBwAYifAvF9IH4CxH0dHQyt9fUMJhoCDI4OdgyGBvoM/ED96JgRCwYDANBxDRY=');
 
-      If (GetCurrentTab <> Tab_Inv) Then
-        GameTab(Tab_Inv);
+      GameTab(Tab_Inv);
 
       If (Not FindDTM(EEx, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
       Begin
@@ -1497,6 +1517,7 @@ Begin
 
   If FindSymbol(X,Y,'Bank') Then
   Begin
+    MarkTime(Timeout);
     Result := True;                                                //Method
     If Debug Then
       Writeln('Found bank symbol');
@@ -1831,8 +1852,7 @@ begin
       begin
         ClickMouse2(Mouse_Left);
         If Not InvFull Then
-          Wait(randomrange(3500,4000)) Else
-          Wait(RandomRange(2000,2500));
+          Wait(randomrange(1900,2200));
       end;
     end else
     begin
@@ -1878,7 +1898,7 @@ begin
   If Debug Then
     Writeln('FOUND '+ ToStr(Count)+' GOLD ORES');
 
-  While (Count > 1) do
+  While (Count > 0) do
   begin
     If Debug Then
       Writeln('FOUND GOLD ORE, STARTING TO HEAT');
@@ -1927,7 +1947,7 @@ begin
           ClickMouse2(Mouse_Left);
 
           If Not InvFull Then
-            Wait(randomrange(3500,4000));
+            Wait(randomrange(1900,2500));
         End;
       End;
     end else
@@ -1977,7 +1997,7 @@ Begin
   End;
 
   Repeat
-    If (FindSpinTicket) Or (CheckStuff) Then
+    If CheckStuff Then
     Begin
       Wait(RandomRange(5000,6000));
       If DTM Then
@@ -1985,7 +2005,10 @@ Begin
         FindGold;
       MarkTime(AniTimer);
       MarkTime(XPInvTimer);
+      MarkTime(Timeout);
     End;
+
+    Wait(Random(100));
 
     If Not WaitLoggedIn(1000) Then
       Exit;
@@ -1994,6 +2017,7 @@ Begin
     Begin
       MarkTime(XPInvTimer);
       MarkTime(AniTimer);
+      MarkTime(Timeout);
       BegInv:=InvCount;
       If Debug Then
         Writeln('Inventory count increased');
@@ -2004,6 +2028,7 @@ Begin
       MarkTime(XPInvTimer);
       MarkTime(AniTimer);
       BegXP:=GetXPBarTotal;
+      MarkTime(Timeout);
       If Debug Then
         Writeln('Xp increased');
     End;
@@ -2103,7 +2128,7 @@ Begin
           MarkTime(XPInvTimer);
     End;
 
-    If Not InvFull Then
+    If InvCount<26 Then
       AntiBan;
   Until (InvFull);
 
@@ -2204,6 +2229,7 @@ Begin
 
     If SPS_WALKPATH(LRCPaths(1, False)) Then //bank to low
     Begin
+      MarkTime(Timeout);
       If Debug Then
         Writeln('Made it to low spot');
       Spot:=1;
@@ -2215,6 +2241,7 @@ Begin
 
     If SPS_WalkPath(LRCPaths(2, False)) Then //bank to high spot
     Begin
+      MarkTime(Timeout);
       If Debug Then
         Writeln('Arrived at spot 2, high spot');
       Spot:=2;
@@ -2255,6 +2282,7 @@ Begin
             Writeln('Run energy low, resting');
           Setrest;
           Repeat
+            MarkTime(Timeout);
             EE;
             If Runaways Then
               Exit;
@@ -2332,6 +2360,7 @@ Begin
 
             If SPS_WalkPath(LRCPaths(3, True)) Then  //high to low spot
             Begin
+              MarkTime(Timeout);
               If Debug Then
                 Writeln('Arrived at spot 1, low spot');
               Spot := 1;
@@ -2373,6 +2402,7 @@ Begin
       Writeln('Low energy resting');
     Setrest;
     Repeat
+      MarkTime(Timeout);
       Wait(100);
       EE;
       If Runaways Then
@@ -2552,7 +2582,7 @@ Begin
               If Debug Then
                 Writeln('Arrived at spot 1, low spot');
               Spot := 1;
-          End;
+            End;
           Moving;
           FixPosition;
         End;
@@ -2640,19 +2670,16 @@ Begin
   DeclarePlayers;
   LoginPlayer;
 
-  Writeln('Starting up...');
-  If GetSkillLevel(Skill_Mining) < 80 Then
-  Begin
-    Writeln('Ah man, sorry you need at least 80 mining to run this script');
-    TerminateScript;
-  End;
+  Writeln('If you changed more than one character in the script to fix the antileech, you are wrong and probably broke something :)');
   SPS_Setup(RUNESCAPE_SURFACE, ['0_0LRC']);
   ClickNorth(SRL_ANGLE_HIGH);
   UseFindMod:=False;
   ToggleXPBar(True);
   StartingExperience:=GetXPBarTotal;
   HP:=GetSkillLevel(Skill_Hitpoints);
+  SetChat('Off',1);
   Spot:=1;
+  Marktime(Timeout);
 
   AddOnTerminate('F33DTM');
   If Debug Then
@@ -2690,7 +2717,7 @@ Begin
   End;
 
   Case Method Of
-    0: Writeln('I see you are banking your junk, sounds kinky');
+    0: Writeln('I see you are banking your junk, good luck!');
     1: Writeln('You are using the drop only method...sucka!');
     2: Writeln('You are using the alching method...goodbye gold');
     3: Writeln('You are using the superheating and banking method..You are a boss');
