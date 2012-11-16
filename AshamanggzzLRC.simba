@@ -54,7 +54,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.4';
+  ScriptVersion = '6.5';
   E = 200;
   F = 462;
   Debug = False;
@@ -733,6 +733,22 @@ Begin
       End;
 End;
 
+Function AtBank: Boolean;
+Var
+  BankBox: TBox;
+Begin
+  BankBox:=IntToBox(240,-105,280,-145);
+  If Not PointInBox(SPS_GetMyPos,BankBox) Then
+  Begin
+    If Debug Then
+    Begin
+      Writeln('Not at bank');
+      Writeln('bank coordinates: '+Off);
+    End;
+  End Else
+    Result:=True;
+End;
+
 Function LRCPaths(Which: Integer; Invert: Boolean): TPointArray;
 Var                                                                                  //Method
   BankToLowestGold,BankToHighGold,LowToHighGold: TPointArray;
@@ -876,7 +892,7 @@ Begin
 
       If(FindDTM(Summoning, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
       Begin
-        HumanMMouse(X, Y + 5, 0, 0);
+        HumanMMouse(X, Y + 5, 2, 2);
 
         If WaitUptextMulti(['ummoning', 'potion'], 500) Then
         Begin
@@ -1388,7 +1404,8 @@ Begin
     If Debug Then
       Writeln('Found Gold in inventory, clicking');
                                                                  //Method
-    Mouse(X,Y,4,4,true);
+    HumanMMouse(X,Y,4,4);
+    ClickMouse2(True);
 
     If (CountItems('DTM',GoldDTM,[]) = 1) Then
     Begin
@@ -1403,7 +1420,8 @@ Begin
       If Debug Then
         Writeln('Found coal in inventory, clicking');
                                                                  //Method
-      Mouse(X,Y,4,4,True);
+      HumanMMouse(X,Y,4,4);
+      ClickMouse2(True);
 
       If (CountItems('DTM',CoalDTM,[]) = 1) Then
       Begin
@@ -1412,8 +1430,25 @@ Begin
           Writeln('Only 1 coal ore found');
       End;
     End Else
-      Exit;
-  End;                                                           //Method
+    Begin
+      If FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2) Then
+      Begin
+        If Debug Then
+          Writeln('Found bar in inventory, clicking');
+                                                                   //Method
+        HumanMMouse(X,Y,4,4);
+        ClickMouse2(True);
+
+        If (CountItems('DTM',BarDTM,[]) = 1) Then
+        Begin
+          OneOre:=1;
+          If Debug Then
+            Writeln('Only 1 gold bar found');
+        End;
+      End Else
+        Exit;
+    End;
+  End;                                                            //Method
 
   CTS := GetColorToleranceSpeed;
   ColorToleranceSpeed(2);
@@ -1495,6 +1530,12 @@ Begin
                                                                    //Method
   Result:=False;
 
+  If AtBank Then
+  Begin
+    Result:=True;
+    Exit;
+  End;
+
   CheckStuff;
 
   If Not WaitLoggedIn(1000) Then
@@ -1543,6 +1584,7 @@ Begin
 
   If Not WaitLoggedIn(1000) Then
     Exit;
+
 
   If Not ToBank Then
   Begin
@@ -1627,6 +1669,19 @@ Begin
           If (CountItems('DTM',CoalDTM,[]) < 3) And (CountItems('DTM',CoalDTM,[]) > 0) Then
             TypeSendEx('2',False) Else
           If CountItems('DTM',CoalDTM,[]) > 5 Then
+            TypeSendEx('4',False);
+        End;
+
+        If (Not FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (Not FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
+        Begin
+          If Debug Then
+            Writeln('Depositing '+ToStr(CountItems('DTM',BarDTM,[]))+' Gold Bars');
+
+          If (CountItems('DTM',BarDTM,[]) < 6) And (CountItems('DTM',BarDTM,[]) > 2) Then           //Method
+            TypeSendEx('3',False) Else
+          If (CountItems('DTM',BarDTM,[]) < 3) And (CountItems('DTM',BarDTM,[]) > 0) Then
+            TypeSendEx('2',False) Else
+          If CountItems('DTM',BarDTM,[]) > 5 Then
             TypeSendEx('4',False);
         End;
       End;
@@ -1930,7 +1985,7 @@ begin
         If Debug Then
           Writeln('FOUND GOLD CLICKING');
 
-        Count:= ItemAmount('inv', 'dtm', GoldDTM, []);
+        Count:= ItemAmount('inv', 'dtm', GoldDTM, [])-1;
 
         If Debug Then
           Writeln('FOUND '+ ToStr(Count)+' GOLD ORES');
@@ -1947,7 +2002,10 @@ begin
           ClickMouse2(Mouse_Left);
 
           If Not InvFull Then
-            Wait(randomrange(1900,2500));
+            Wait(randomrange(1900,2500)) Else
+            If (Count=0) And (Method=3) Then
+              ToBank;
+
         End;
       End;
     end else
@@ -2072,17 +2130,7 @@ Begin
         FindGoldDTM Else
         FindGold;
 
-    If Runaways Then
-      Exit;
-
-    If (Method = 2) then
-      AlchOres(JIC)
-    Else If (Method = 3) then
-      SuperHeat(True)
-    Else If (Method = 4) then
-      SuperHeat(False);
-
-    If FindSymbol(X,Y,'Bank') Then
+    If Runaways Or FindSymbol(X,Y,'Bank') Then
     Begin
       If Debug Then
         Writeln('Found bank symbol');
@@ -2095,6 +2143,21 @@ Begin
             FreeBitmap(BMP2[I]);
         End;
       Exit;
+    End;
+
+    If TimeFromMark(XPInvTimer)>RandomRange(14000,15000) Then
+    Begin
+      If Debug Then
+        Writeln('XP/Inv Timeout');
+      If DTM Then
+      Begin
+        If Not FindGoldDTM Then
+          Break Else
+          MarkTime(XPInvTimer);
+      End Else
+        If Not FindGold Then
+          Break Else
+          MarkTime(XPInvTimer);
     End;
 
     If TimeFromMark(AniTimer)>RandomRange(1500,2000) Then
@@ -2113,20 +2176,12 @@ Begin
       MarkTime(XPInvTimer);
     End;
 
-    If TimeFromMark(XPInvTimer)>RandomRange(14000,15000) Then
-    Begin
-      If Debug Then
-        Writeln('XP/Inv Timeout');
-      If DTM Then
-      Begin
-        If Not FindGoldDTM Then
-          Break Else
-          MarkTime(XPInvTimer);
-      End Else
-        If Not FindGold Then
-          Break Else
-          MarkTime(XPInvTimer);
-    End;
+    If (Method = 2) then
+      AlchOres(JIC)
+    Else If (Method = 3) then
+      SuperHeat(True)
+    Else If (Method = 4) then
+      SuperHeat(False);
 
     If InvCount<26 Then
       AntiBan;
@@ -2582,7 +2637,7 @@ Begin
               If Debug Then
                 Writeln('Arrived at spot 1, low spot');
               Spot := 1;
-            End;
+          End;
           Moving;
           FixPosition;
         End;
@@ -2689,8 +2744,7 @@ Begin
 
   If ((Method = 2) Or (Method = 3) Or (Method = 4)) Then
   Begin
-    if (Not WaitGameTab(Tab_Inv, 3000)) then
-      Gametab(Tab_Inv);
+    Gametab(Tab_Inv);
 
     If SFS Then
     Begin
