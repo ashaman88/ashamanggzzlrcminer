@@ -19,11 +19,25 @@ Const
 
   SRLStats_Username = '';         // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
+  {Enhance Excalibur Support}
   EnhancedExcalibur = False;      // ***True to use enhanced excalibur for healing***
+
+  {For Alch or Superheat Methods}
   SFS = True;                     // ***Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work)***
   JIC = True;                     // ***If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false***
+  Superheats = '4';               // ***Which key do you have the superheat spell bound to?***
+  Alch = '5';                     // ***Which key do you have the low alch spell bound to?***
+
+  {Drop Settings}
+  GoldOre = '1';                  // ***Which key do you have gold ores bound to?***
+  GoldBar = '2';                  // ***Which key do you have gold bars bound to?***
+  CoalOre = '3';                  // ***Which key do you have coal ore bound to?***
+
+  {Overall Methods}
   DMP = True;                     // ***If the SPS Maps aren't found, Download them and save them automatically, you should leave this as true***
   DTM = True;                     // ***Use DTM Method? Faster!***
+
+  {Break Settings}
   SwitchWorlds = False;           // ***Switch worlds after a break?***
   BreakIn      = 600;             // ***How long before we take a break? (minutes)***
   BreakFor     = 15;              // ***How long will we break for? (minutes)***
@@ -55,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.6';
+  ScriptVersion = '6.7';
   E = 200;
   F = 462;
   Debug = False;
@@ -1822,7 +1836,7 @@ Begin
   end;
 end;
 
-Procedure DropLRC;
+Procedure DropLRC(GoldOres,GoldBars,CoalOres: Boolean);
 Var
   X, Y,T,TT,Invs: Integer;
 Begin
@@ -1832,22 +1846,25 @@ Begin
     Exit;
 
   GameTab(Tab_Inv);
-  if (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) then
+  if (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (GoldOres) then
   begin
     If Debug Then
       Writeln('Found GoldDTM');
     OreCount := OreCount + CountItems('DTM',GoldDTM,[]);
-    SendKeys('1', 10 + Random(10), 10 + Random(10));
+    SendKeys(GoldOre, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
     MarkTime(TT);
     Invs:=InvCount;
     Repeat
       If TimeFromMark(T)> 10000 Then
+      Begin
+        DropLRCBackup;
         Break;
+      End;
       If TimeFromMark(TT)> 5000 Then
       Begin
         TypeByte(VK_ENTER);
-        TypeSend('1');
+        TypeSend(GoldOre);
         MarkTime(TT);
       End;
       If InvCount<Invs Then
@@ -1858,50 +1875,26 @@ Begin
           Writeln('Inv Decreased');
       End;
       Wait(Random(100));
-      SendKeys('1', 10 + Random(10), 10 + Random(10));
+      SendKeys(GoldOre, 10 + Random(10), 10 + Random(10));
     Until Not (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
-  end else
+  end;
+  if (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (GoldBars) then
   begin
-    if (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) then
-    begin
-      OreCount := OreCount + CountItems('DTM',BarDTM,[]);
-      SendKeys('2', 10 + Random(10), 10 + Random(10));
-      MarkTime(T);
-      MarkTime(TT);
-      Invs:=InvCount;
-      Repeat
-        If TimeFromMark(T)> 10000 Then
-          Break;
-        If TimeFromMark(TT)> 5000 Then
-        Begin
-          TypeByte(VK_ENTER);
-          TypeSend('2');
-          MarkTime(TT);
-        End;
-        If InvCount<Invs Then
-        Begin
-          MarkTime(T);
-          Invs:=InvCount;
-        End;
-        Wait(Random(100));
-        SendKeys('2', 10 + Random(10), 10 + Random(10));
-      Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
-    end;
-  End;
-  if (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) then
-  begin
-    OreCount := OreCount + CountItems('DTM',CoalDTM,[]);
-    SendKeys('3', 10 + Random(10), 10 + Random(10));
+    OreCount := OreCount + CountItems('DTM',BarDTM,[]);
+    SendKeys(GoldBar, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
     MarkTime(TT);
     Invs:=InvCount;
     Repeat
       If TimeFromMark(T)> 10000 Then
+      Begin
+        DropLRCBackup;
         Break;
+      End;
       If TimeFromMark(TT)> 5000 Then
       Begin
         TypeByte(VK_ENTER);
-        TypeSend('3');
+        TypeSend(GoldBar);
         MarkTime(TT);
       End;
       If InvCount<Invs Then
@@ -1910,7 +1903,35 @@ Begin
         Invs:=InvCount;
       End;
       Wait(Random(100));
-      SendKeys('3', 10 + Random(10), 10 + Random(10));
+      SendKeys(GoldBar, 10 + Random(10), 10 + Random(10));
+    Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
+  end;
+  if (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (CoalOres) then
+  begin
+    OreCount := OreCount + CountItems('DTM',CoalDTM,[]);
+    SendKeys(CoalOre, 10 + Random(10), 10 + Random(10));
+    MarkTime(T);
+    MarkTime(TT);
+    Invs:=InvCount;
+    Repeat
+      If TimeFromMark(T)> 10000 Then
+      Begin
+        DropLRCBackup;
+        Break;
+      End;
+      If TimeFromMark(TT)> 5000 Then
+      Begin
+        TypeByte(VK_ENTER);
+        TypeSend(CoalOre);
+        MarkTime(TT);
+      End;
+      If InvCount<Invs Then
+      Begin
+        MarkTime(T);
+        Invs:=InvCount;
+      End;
+      Wait(Random(100));
+      SendKeys(CoalOre, 10 + Random(10), 10 + Random(10));
     Until Not (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   ProgressReport;
@@ -1949,7 +1970,7 @@ begin
   FreeDTM(NatureRune);
 end;
 
-Procedure AlchOres(BankBars: Boolean);
+Procedure AlchOresBackup(BankBars: Boolean);
 Var
   Spell,X,Y,Count: Integer;
 begin
@@ -2022,7 +2043,73 @@ begin
   FreeDTM(Spell);
 end;
 
-Procedure SuperHeat(BankBars: Boolean);
+Procedure AlchOres(BankBars: Boolean);
+Var
+  Spell,X,Y,Count,T: Integer;
+begin
+  CheckStuff;
+
+  If Not WaitLoggedIn(1000) Then
+    Exit;
+
+  StaffRuneCheck;
+
+  If (Not HeatAlch) Then
+  Begin
+    BankBars:= JIC;
+    If (BankBars) Then
+    Begin
+      Method:=0;
+    End Else
+      Method:=1;
+    Exit;
+  End;
+
+  Spell := DTMFromString('mggAAAHicY2NgYHBmYmAwBWIzKPYDYn8g3sDIwLAYiFcB8WYoexsQK6YZMVxZY8OwZYI2w8np2gxOVgZgzA80CxtmxIEhAAAKJQzK');
+  GameTab(Tab_Inv);
+  Count:= ItemAmount('inv', 'dtm', GoldDTM, [])+ItemAmount('inv', 'dtm', CoalDTM, []);
+
+  MarkTime(T);
+  While (Count > 0) do
+  begin
+    If EE Then
+      FindGold;
+    If RunAways Then
+      Break;
+
+    ClickContinue(True,True);
+
+    SendKeys(Alch, 10 + Random(10), 10 + Random(10));
+
+    If Not FindDTM(GOLDDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
+      If Not FindDTM(CoalDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
+        Break;
+
+    CheckStuff;
+
+    Count:= ItemAmount('inv', 'dtm', GoldDTM, [])+ItemAmount('inv', 'dtm', CoalDTM, []);
+    HumanMMouse(X, Y, 3, 3);
+    if (WaitUptext('ast', 600)) then
+    begin
+        ClickMouse2(Mouse_Left);
+        MarkTime(T);
+        If Not InvFull Then
+          Wait(randomrange(1900,2200));
+    end else
+    Begin
+      TypeByte(VK_ENTER);
+      TypeSend(Alch);
+    End;
+    If TimeFromMark(T)>10000 Then
+    Begin
+      AlchOresBackup(False);
+      Break;
+    End;
+  End;
+  FreeDTM(Spell);
+end;
+
+Procedure SuperHeatBackUp(BankBars: Boolean);
 Var
   Spell, X, Y, Count: Integer;
 begin
@@ -2120,6 +2207,98 @@ begin
   End;
   GameTab(Tab_Inv);
 
+  FreeDTM(Spell);
+
+  If Debug Then
+    Writeln('FINISHED HEATING');
+End;
+
+Procedure SuperHeat(BankBars: Boolean);
+Var
+  Spell, X, Y, Count,T: Integer;
+begin
+  CheckStuff;
+
+  If Not WaitLoggedIn(1000) Then
+    Exit;
+
+  If Debug Then
+      Writeln('Superheating');
+
+  StaffRuneCheck;
+
+  if (Not HeatAlch) then
+  begin
+    BankBars:= JIC;
+    if (BankBars) then
+    begin
+      Method:=0;
+    end else
+      Method:=1;
+    exit;
+  end;
+
+  Spell := DTMFromString('mWAAAAHicY2FgYJjBxMAwD4inAPF0IO5mZGDoB+IJQNwGxL+2uDP82ajC8OviOob3bU4M/EA9yJgRDYMAALa8DNg=');
+  GameTab(Tab_Inv);
+  Count:= ItemAmount('inv', 'dtm', GoldDTM, []);
+
+  If Debug Then
+    Writeln('FOUND '+ ToStr(Count)+' GOLD ORES');
+
+  MarkTime(T);
+  While (Count > 0) do
+  begin
+    If Debug Then
+      Writeln('FOUND GOLD ORE, STARTING TO HEAT');
+
+    If EE Then
+      FindGold;
+    If RunAways Then
+      Break;
+
+    ClickContinue(True,True);
+
+    SendKeys(Superheats, 10 + Random(10), 10 + Random(10));
+
+    If FindDTM(GOLDDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
+    Begin
+      If Debug Then
+        Writeln('FOUND GOLD CLICKING');
+
+      Count:= ItemAmount('inv', 'dtm', GoldDTM, [])-1;
+
+      If Debug Then
+        Writeln('FOUND '+ ToStr(Count)+' GOLD ORES');
+
+      CheckStuff;
+
+      HumanMMouse(X, Y, 4, 4);
+
+      if (WaitUptext('ast', 600)) then
+      Begin
+        If Debug Then
+          Writeln('CLICKED');
+
+        ClickMouse2(Mouse_Left);
+        MarkTime(T);
+
+        If Not InvFull Then
+          Wait(randomrange(1900,2500)) Else
+          If (Count=0) And (Method=3) Then
+            ToBank Else
+            FindGoldDTM;
+      End Else
+      Begin
+        TypeByte(VK_ENTER);
+        TypeSend(Superheats);
+      End;
+    End;
+    If TimeFromMark(T)>10000 Then
+    Begin
+      SuperHeatBackup(False);
+      Break;
+    End;
+  End;
   FreeDTM(Spell);
 
   If Debug Then
@@ -2286,16 +2465,23 @@ Begin
     If (Method=1) Then
       If InvCount>10 Then
       Begin
-        DropLRC;
+        DropLRC(True,True,True);
         BegInv:=InvCount;
       End;
 
     If (Method = 2) then
+    Begin
       AlchOres(JIC)
-    Else If (Method = 3) then
-      SuperHeat(True)
-    Else If (Method = 4) then
-      SuperHeat(False);
+      BegInv:=InvCount;
+    End Else
+      If (Method = 3) then
+        SuperHeat(True) Else
+        If (Method = 4) then
+        Begin
+          SuperHeat(False);
+          DropLRC(False,True,True);
+          BegInv:=InvCount;
+        End;
 
     If InvCount<26 Then
       AntiBan;
@@ -2403,7 +2589,8 @@ Begin
       If Debug Then
         Writeln('Made it to low spot');
       Spot:=1;
-    End;
+    End Else
+      Exit;
   End Else
   Begin
     If Debug Then
@@ -2415,7 +2602,8 @@ Begin
       If Debug Then
         Writeln('Arrived at spot 2, high spot');
       Spot:=2;
-    End;
+    End Else
+      Exit;
   End;
 
   Moving;
@@ -2476,7 +2664,8 @@ Begin
             Writeln('EmptySpot too high, going to look for coal');
 
           If SPS_BLINDWALK(Point(309, -38)) Then
-            Spot:=3;
+            Spot:=3 Else
+            Exit;
 
           Moving;
 
@@ -2501,7 +2690,8 @@ Begin
           Spot:=2;
           If Debug Then
             Writeln('Arrived at spot 2, high spot');
-        End;
+        End Else
+          Exit;
 
         Moving;
         FixPosition;
@@ -2534,7 +2724,8 @@ Begin
               If Debug Then
                 Writeln('Arrived at spot 1, low spot');
               Spot := 1;
-          End;
+            End Else
+              Exit;
           Moving;
           FixPosition;
         End;
@@ -2556,7 +2747,7 @@ Begin
     Begin
       If Debug Then
         Writeln('Dropping for method '+ToStr(Method));
-      DropLRC;
+      DropLRC(True,True,True);
       FindGoldDTM;
     End Else
       If (Method = 2) Then
@@ -2775,7 +2966,7 @@ Begin
     Begin
       If Debug Then
         Writeln('Dropping for method '+ToStr(Method));
-      DropLRC;
+      DropLRC(True,True,True);
       WaitFunc(@FindGold,1,RandomRange(3000,4000))
     End Else
       If (Method = 2) Then
