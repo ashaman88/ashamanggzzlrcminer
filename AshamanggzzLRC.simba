@@ -4,6 +4,7 @@ Program AshamanggzzLRC;
   {$I Sps/Sps.Simba}
   {$I SRL/SRL/Misc/Debug.Simba}
   {$I Srl/Srl/Skill/Fighting.Simba}
+  {$I SRL/SRL/Misc/SmartGraphics.Simba}
 
 Var
   PTS: Integer;
@@ -54,7 +55,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.5';
+  ScriptVersion = '6.6';
   E = 200;
   F = 462;
   Debug = False;
@@ -64,8 +65,8 @@ Const
 Var
  T,Spot,ET,SpotDTM,A,B,C,D,GoldX,GoldY: Integer;
  W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks,Timeout: Integer;
- OreCount,XP,OneOre,BarDTM,HP,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
- XPH,OresPH: Extended;
+ OreCount,XP,OneOre,BarDTM,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
+ XPH,OresPH,HP: Extended;
  HeatAlch,SafeBank: Boolean;
  Off,FunctionStop: String;
 
@@ -118,7 +119,7 @@ Begin
   GoldDTM := DTMFromString('mWAAAAHicY2FgYJjBxMDQB8SzgHgxEAcyMjAEAbEHEHsD8eZ+KYZEPzOGTb2SDJkh1gz8QD3ImBENgwAA4fkIew==');
   BarDTM:= DTMFromString('mbQAAAHicY2VgYJjPxMCwBIgXA/FsIF4FxAqMDAzyQKwCxKpArAjEC+rFGC4tlwXjSHcehhur5Rj4gfrRMSMWDAYA8jMK5w==');
   CoalDTM := DTMFromString('mggAAAHicY2NgYMhjYmAoAuIkIM4C4gogLgHiJ0C52wwQ+g0QPwTiF0Csri4HxuGuBgzRnsYMWSHWDJKSwgz8QDlsmBEHhgAAKPUMHA==');
-  Staff:= DTMFromString('mWAAAAHicY2FgYDjIxMCwF4hPAvFpIH4MFHsBxHeB+BYQN8ULMzTECTNURAgxlBcVMsgBxWB4GhAzomEQAACfhQu2');
+  Staff := DTMFromString('mWAAAAHicY2FgYJjKxMDQBcQzgXgBELcyMjBMBOIGIK4AYmVpaQYTZWUGSWFhhk8zeRjkgHqQMRMaBgEAu6MHoA==');
 End;
 
 Procedure F33DTM;
@@ -989,7 +990,7 @@ Begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
-  If ((HPLevel < (HP*10*0.65))) Then
+  If ((HPLevel < (HP*0.65))) Then
   Begin
     If HPLevel=-1 Then
       Exit;
@@ -1043,7 +1044,7 @@ Begin
       RandomRClick;                                                 //Method
       CheckStuff;
       MarkTime(Timeout);
-    Until((HPLevel > (HP*10*0.65)));
+    Until((HPLevel > (HP*0.65)));
 
     If Debug Then
       Writeln('All healed');
@@ -1765,7 +1766,7 @@ Begin
   Result:= FindDTM(DTM, X, Y, Bounds.X1, Bounds.Y1, Bounds.X2, Bounds.Y2);
 End;
 
-Procedure DropLRC;
+Procedure DropLRCBackup;
 Var
   I, Bars, X, Y: Integer;
 Begin
@@ -1819,6 +1820,100 @@ Begin
         end;
       end;
   end;
+end;
+
+Procedure DropLRC;
+Var
+  X, Y,T,TT,Invs: Integer;
+Begin
+  CheckStuff;
+
+  If Not WaitLoggedIn(1000) Then
+    Exit;
+
+  GameTab(Tab_Inv);
+  if (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) then
+  begin
+    If Debug Then
+      Writeln('Found GoldDTM');
+    OreCount := OreCount + CountItems('DTM',GoldDTM,[]);
+    SendKeys('1', 10 + Random(10), 10 + Random(10));
+    MarkTime(T);
+    MarkTime(TT);
+    Invs:=InvCount;
+    Repeat
+      If TimeFromMark(T)> 10000 Then
+        Break;
+      If TimeFromMark(TT)> 5000 Then
+      Begin
+        TypeByte(VK_ENTER);
+        TypeSend('1');
+        MarkTime(TT);
+      End;
+      If InvCount<Invs Then
+      Begin
+        MarkTime(T);
+        Invs:=InvCount;
+        If Debug Then
+          Writeln('Inv Decreased');
+      End;
+      Wait(Random(100));
+      SendKeys('1', 10 + Random(10), 10 + Random(10));
+    Until Not (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
+  end else
+  begin
+    if (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) then
+    begin
+      OreCount := OreCount + CountItems('DTM',BarDTM,[]);
+      SendKeys('2', 10 + Random(10), 10 + Random(10));
+      MarkTime(T);
+      MarkTime(TT);
+      Invs:=InvCount;
+      Repeat
+        If TimeFromMark(T)> 10000 Then
+          Break;
+        If TimeFromMark(TT)> 5000 Then
+        Begin
+          TypeByte(VK_ENTER);
+          TypeSend('2');
+          MarkTime(TT);
+        End;
+        If InvCount<Invs Then
+        Begin
+          MarkTime(T);
+          Invs:=InvCount;
+        End;
+        Wait(Random(100));
+        SendKeys('2', 10 + Random(10), 10 + Random(10));
+      Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
+    end;
+  End;
+  if (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) then
+  begin
+    OreCount := OreCount + CountItems('DTM',CoalDTM,[]);
+    SendKeys('3', 10 + Random(10), 10 + Random(10));
+    MarkTime(T);
+    MarkTime(TT);
+    Invs:=InvCount;
+    Repeat
+      If TimeFromMark(T)> 10000 Then
+        Break;
+      If TimeFromMark(TT)> 5000 Then
+      Begin
+        TypeByte(VK_ENTER);
+        TypeSend('3');
+        MarkTime(TT);
+      End;
+      If InvCount<Invs Then
+      Begin
+        MarkTime(T);
+        Invs:=InvCount;
+      End;
+      Wait(Random(100));
+      SendKeys('3', 10 + Random(10), 10 + Random(10));
+    Until Not (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
+  end;
+  ProgressReport;
 end;
 
 Function WaitGameTab(Tab, TimeToWait: Integer): Boolean;
@@ -1876,7 +1971,7 @@ begin
     Exit;
   End;
 
-  Spell := DTMFromString('mbQAAAHicY2VgYHBhYmDwBGJnILYFYh8g7mZkYJgCxJOhdB8Qe9gbM6ybwstwaIEAmD535RaDCFA/OmbEgsEAAP5DC/E=');
+  Spell := DTMFromString('mggAAAHicY2NgYHBmYmAwBWIzKPYDYn8g3sDIwLAYiFcB8WYoexsQK6YZMVxZY8OwZYI2w8np2gxOVgZgzA80CxtmxIEhAAAKJQzK');
   GameTab(Tab_Inv);
   Count:= ItemAmount('inv', 'dtm', GoldDTM, []);
 
@@ -1889,6 +1984,12 @@ begin
 
     if (Not WaitGameTab(Tab_Magic, 3000)) then
       Gametab(Tab_Magic);
+
+    If (Not FindDTM(Spell,X, Y, MIX1, MIY1, MIX2, MIY2)) And (GetCurrentTab=Tab_Magic) Then
+    Begin
+      HumanMouseBox(702,302-50,721,322-50);
+      ClickMouse2(True);
+    End;
 
     if (WaitFindDTMEx(Spell,X, Y, MIX1, MIY1, MIX2, MIY2,200, 4000)) then
     begin
@@ -1946,7 +2047,7 @@ begin
     exit;
   end;
 
-  Spell := DTMFromString('mggAAAHicY2NgYOhlYmCYBMR9QNwJxZOBOJ6RgSEZiFOhGMSPBeI3NcwMH+azMvz+/RuMT3szg8VEgGZhw4w4MAQAAHWFEZY=');
+  Spell := DTMFromString('mWAAAAHicY2FgYJjBxMAwD4inAPF0IO5mZGDoB+IJQNwGxL+2uDP82ajC8OviOob3bU4M/EA9yJgRDYMAALa8DNg=');
   GameTab(Tab_Inv);
   Count:= ItemAmount('inv', 'dtm', GoldDTM, []);
 
@@ -1965,6 +2066,12 @@ begin
 
     if (Not WaitGameTab(Tab_Magic, 3000)) then
       Gametab(Tab_Magic);
+
+    If (Not FindDTM(Spell,X, Y, MIX1, MIY1, MIX2, MIY2)) And (GetCurrentTab=Tab_Magic) Then
+    Begin
+      HumanMouseBox(702,302-50,721,322-50);
+      ClickMouse2(True);
+    End;
 
     if (WaitFindDTMEx(Spell,X, Y, MIX1, MIY1, MIX2, MIY2,200, 4000)) then
     begin
@@ -2176,6 +2283,13 @@ Begin
       MarkTime(XPInvTimer);
     End;
 
+    If (Method=1) Then
+      If InvCount>10 Then
+      Begin
+        DropLRC;
+        BegInv:=InvCount;
+      End;
+
     If (Method = 2) then
       AlchOres(JIC)
     Else If (Method = 3) then
@@ -2269,7 +2383,8 @@ Begin
     Exit;
 
   If InvFull Then
-    Banking;
+    If (Method=0) Or (Method=3) Then
+      Banking;
 
   If Debug Then
       Writeln('Empty spot reset to 0');
@@ -2425,13 +2540,9 @@ Begin
         End;
   Until ((InvFull) Or (FindSymbol(X,Y,'Bank')));
 
-  If (Method = 3) Then     //Swap the GoldDTM with BarsDTM
+  If (Method = 3) Then
   Begin
-    If Debug Then
-      Writeln('Swapping gold ore dtm for bar');
     SuperHeat(True);
-    FreeDTM(GoldDTM);
-    GoldDTM:= DTMFromString('mbQAAAHicY2VgYJjPxMCwBIgXA/FsIF4FxAqMDAzyQKwCxKpArAjEC+rFGC4tlwXjSHcehhur5Rj4gfrRMSMWDAYA8jMK5w=='); //Bars
   End;
 
   ProgressReport;
@@ -2491,7 +2602,8 @@ Begin
     Exit;
 
   If InvFull Then
-    Banking;
+    If (Method=0) Or (Method=3) Then
+      Banking;
 
   If Debug Then
       Writeln('Empty spot reset to 0');
@@ -2689,6 +2801,59 @@ Begin
     FunctionStop:= 'MainLoop: Finished';
 End;
 
+Function GetMaxHP: Extended;
+Var
+  Text: String;
+  B, BigBox: TBox;
+  TPA : TPointArray;
+  ATPA : T2DPointArray;
+  I,cts: Integer;
+  BoxColors: TIntegerArray;
+Begin
+  GameTab(Tab_Combat);
+  HumanMouseBox(650,394-50,682,401-50);
+  Wait(RandomRange(500,700));
+
+  B := IntToBox(594, 365-50, 694, 394-50);
+  cts := GetColorToleranceSpeed;
+  ColorToleranceSpeed(1);
+  //            Black
+  BoxColors := [1774603];
+  SetLength(ATPA, Length(BoxColors));
+  for i := 0 to High(BoxColors) do
+    FindColorsTolerance(ATPA[i], BoxColors[i], B.X1, B.Y1, B.X2, B.Y2, 0);
+  TPA := MergeATPA(ATPA);
+  If Length(TPA) < 10 Then
+  begin
+    Writeln('Not enough colors');
+    ColorToleranceSpeed(cts);
+    Exit;
+  end;
+
+  ATPA := SplitTPA(TPA, 4);
+  For i := 0 to High(ATPA) do
+  begin
+    B := GetTPABounds(ATPA[i]);
+    if ((B.x2-B.x1) > 4) and ((B.y2-B.y1) > 4) then
+      Break
+    else
+      B := IntToBox(0, 0, 0, 0);
+  end;
+
+  If (B.x2 = 0) then
+  begin
+    ColorToleranceSpeed(cts);
+    Exit;
+  end;
+
+  BigBox := B;
+
+  Text:= GetTextAtExWrap(BigBox.X1, BigBox.Y1, BigBox.X2, BigBox.Y2, 0, 5, 2, 3111603, 10, 'UpChars');
+  Text:= Copy(Text, 0, High(Text)-1);
+  If (StrToIntDef(Text, 0)=100) Then
+    Result:=HPLevel Else
+    Result:= (HPLevel*100)/(StrToIntDef(Text, 0));
+End;
 
 Procedure LastRun;
 Begin
@@ -2731,7 +2896,8 @@ Begin
   UseFindMod:=False;
   ToggleXPBar(True);
   StartingExperience:=GetXPBarTotal;
-  HP:=GetSkillLevel(Skill_Hitpoints);
+  HP:=GetMaxHP;
+
   SetChat('Off',1);
   Spot:=1;
   Marktime(Timeout);
