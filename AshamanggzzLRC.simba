@@ -19,6 +19,7 @@ Const
 
   SRLStats_Username = '';         // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
+
   {Enhance Excalibur Support}
   EnhancedExcalibur = False;      // ***True to use enhanced excalibur for healing***
 
@@ -34,6 +35,7 @@ Const
   CoalOre = '3';                  // ***Which key do you have coal ore bound to?***
 
   {Overall Methods}
+  ActionBar = True;               // ***Do you want to use the action bar to drop/superheat/alch?***
   DMP = True;                     // ***If the SPS Maps aren't found, Download them and save them automatically, you should leave this as true***
   DTM = True;                     // ***Use DTM Method? Faster!***
 
@@ -69,7 +71,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.7';
+  ScriptVersion = '6.8';
   E = 200;
   F = 462;
   Debug = False;
@@ -445,6 +447,7 @@ begin
 
   I := Random(Length(TPA));
   HumanMMouse(TPA[I].X, TPA[I].Y, 5, 5);
+
   if RClick then
   begin
     ClickMouse2(False);
@@ -464,7 +467,7 @@ begin
     if FindTextEx(X,Y,['Choose','Option'],['UpCharsEx'],MSX1,MSY1,MSX2,MSY2) then
       MMouse(RandomRange(MIX1,MIX2),RandomRange(MIY1,MIY2),0,0);
   end;
-
+  SetArrayLength(TPA,0);
 end;
 
 Function Antiban: Boolean;
@@ -752,7 +755,7 @@ Function AtBank: Boolean;
 Var
   BankBox: TBox;
 Begin
-  BankBox:=IntToBox(240,-105,280,-145);
+  BankBox:=IntToBox(240,-105,260,-145);
   If Not PointInBox(SPS_GetMyPos,BankBox) Then
   Begin
     If Debug Then
@@ -766,7 +769,7 @@ End;
 
 Function LRCPaths(Which: Integer; Invert: Boolean): TPointArray;
 Var                                                                                  //Method
-  BankToLowestGold,BankToHighGold,LowToHighGold: TPointArray;
+  BankToLowestGold,BankToHighGold,LowToHighGold,LowGoldToCoal: TPointArray;
   Paths: T2DPointArray;
 Begin
   If Debug Then
@@ -783,13 +786,15 @@ Begin
 
   LowToHighGold:= [Point(325, 25), Point(295, -20), Point(255, -35), Point(205, -45)];
 
-  Paths:= [BankToLowestGold, BankToHighGold, LowToHighGold];
+  LowGoldToCoal:= [Point(325, 25), Point(320, 0), Point(315, -15), Point(309, -38)];
+
+  Paths:= [BankToLowestGold, BankToHighGold, LowToHighGold, LowGoldToCoal];
 
   Case Which of
     1: Result:= Paths[0];
     2: Result:= Paths[1];
     3: Result:= Paths[2];
-    4: Result:= Paths[RandomRange(0, 3)];
+    4: Result:= Paths[3];
   End;
 
   If Invert Then
@@ -1391,7 +1396,6 @@ Begin
 End;
 
 
-
 Function Bank: Boolean;
 Var
   H,I,CTS: Integer;
@@ -1508,6 +1512,7 @@ Begin
         If DidRedClick Then
         Begin                                                        //Method
           Result:=True;
+          SetArrayLength(ATPA,0);
           Exit;
         End Else
           Exit;
@@ -1526,11 +1531,13 @@ Begin
           If Debug Then
             Writeln('DIDNT FIND OPTION TO DEPOSIT');
           MouseBox(524,369,538,394,Mouse_Left);
+          SetArrayLength(ATPA,0);
           Exit;
         End;
       End;
     End;
   End;
+  SetArrayLength(ATPA,0);
   If Debug Then
     FunctionStop:= 'Bank: Finished';
 End;
@@ -1845,11 +1852,18 @@ Begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
+  If Not ActionBar Then
+  Begin
+    DropLRCBackup;
+    Exit;
+  End;
+
   GameTab(Tab_Inv);
   if (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (GoldOres) then
   begin
     If Debug Then
       Writeln('Found GoldDTM');
+    ToggleActionBar(True);
     OreCount := OreCount + CountItems('DTM',GoldDTM,[]);
     SendKeys(GoldOre, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
@@ -1864,7 +1878,9 @@ Begin
       If TimeFromMark(TT)> 5000 Then
       Begin
         TypeByte(VK_ENTER);
-        TypeSend(GoldOre);
+        Wait(RandomRange(500,600));
+        TypeByte(VK_ESCAPE);
+        ToggleActionBar(True);
         MarkTime(TT);
       End;
       If InvCount<Invs Then
@@ -1874,12 +1890,15 @@ Begin
         If Debug Then
           Writeln('Inv Decreased');
       End;
-      Wait(Random(100));
+      Wait(Random(200));
       SendKeys(GoldOre, 10 + Random(10), 10 + Random(10));
     Until Not (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   if (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (GoldBars) then
   begin
+    If Debug Then
+      Writeln('Found BarDTM');
+    ToggleActionBar(True);
     OreCount := OreCount + CountItems('DTM',BarDTM,[]);
     SendKeys(GoldBar, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
@@ -1894,7 +1913,9 @@ Begin
       If TimeFromMark(TT)> 5000 Then
       Begin
         TypeByte(VK_ENTER);
-        TypeSend(GoldBar);
+        Wait(RandomRange(500,600));
+        TypeByte(VK_ESCAPE);
+        ToggleActionBar(True);
         MarkTime(TT);
       End;
       If InvCount<Invs Then
@@ -1902,12 +1923,14 @@ Begin
         MarkTime(T);
         Invs:=InvCount;
       End;
-      Wait(Random(100));
+      Wait(Random(200));
       SendKeys(GoldBar, 10 + Random(10), 10 + Random(10));
     Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   if (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (CoalOres) then
   begin
+    If Debug Then
+      Writeln('Found Coal to drop');
     OreCount := OreCount + CountItems('DTM',CoalDTM,[]);
     SendKeys(CoalOre, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
@@ -1922,7 +1945,9 @@ Begin
       If TimeFromMark(TT)> 5000 Then
       Begin
         TypeByte(VK_ENTER);
-        TypeSend(CoalOre);
+        Wait(RandomRange(500,600));
+        TypeByte(VK_ESCAPE);
+        ToggleActionBar(True);
         MarkTime(TT);
       End;
       If InvCount<Invs Then
@@ -1930,7 +1955,7 @@ Begin
         MarkTime(T);
         Invs:=InvCount;
       End;
-      Wait(Random(100));
+      Wait(Random(200));
       SendKeys(CoalOre, 10 + Random(10), 10 + Random(10));
     Until Not (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
@@ -2052,6 +2077,12 @@ begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
+  If Not ActionBar Then
+  Begin
+    AlchOres(BankBars);
+    Exit;
+  End;
+
   StaffRuneCheck;
 
   If (Not HeatAlch) Then
@@ -2077,6 +2108,8 @@ begin
     If RunAways Then
       Break;
 
+    ToggleActionBar(True);
+
     ClickContinue(True,True);
 
     SendKeys(Alch, 10 + Random(10), 10 + Random(10));
@@ -2087,18 +2120,23 @@ begin
 
     CheckStuff;
 
-    Count:= ItemAmount('inv', 'dtm', GoldDTM, [])+ItemAmount('inv', 'dtm', CoalDTM, []);
+    Count:= ItemAmount('inv', 'dtm', GoldDTM, [])+ItemAmount('inv', 'dtm', CoalDTM, [])-1;
     HumanMMouse(X, Y, 3, 3);
     if (WaitUptext('ast', 600)) then
     begin
+      If Debug Then
+        Writeln('Found Spell uptext, clicking');
         ClickMouse2(Mouse_Left);
         MarkTime(T);
         If Not InvFull Then
           Wait(randomrange(1900,2200));
     end else
     Begin
+      If Debug Then
+        Writeln('No spell uptext found, hitting enter');
       TypeByte(VK_ENTER);
-      TypeSend(Alch);
+      Wait(RandomRange(500,600));
+      TypeByte(VK_ESCAPE);
     End;
     If TimeFromMark(T)>10000 Then
     Begin
@@ -2222,6 +2260,12 @@ begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
+  If Not ActionBar Then
+  Begin
+    SuperHeatBackup(BankBars);
+    Exit;
+  End;
+
   If Debug Then
       Writeln('Superheating');
 
@@ -2256,6 +2300,8 @@ begin
     If RunAways Then
       Break;
 
+    ToggleActionBar(True);
+
     ClickContinue(True,True);
 
     SendKeys(Superheats, 10 + Random(10), 10 + Random(10));
@@ -2264,8 +2310,6 @@ begin
     Begin
       If Debug Then
         Writeln('FOUND GOLD CLICKING');
-
-      Count:= ItemAmount('inv', 'dtm', GoldDTM, [])-1;
 
       If Debug Then
         Writeln('FOUND '+ ToStr(Count)+' GOLD ORES');
@@ -2277,27 +2321,48 @@ begin
       if (WaitUptext('ast', 600)) then
       Begin
         If Debug Then
-          Writeln('CLICKED');
+          Writeln('Spell active clicking ore');
 
+        Count:= ItemAmount('inv', 'dtm', GoldDTM, [])-1;
+        Writeln('Count : '+ToStr(Count));
         ClickMouse2(Mouse_Left);
         MarkTime(T);
 
         If Not InvFull Then
-          Wait(randomrange(1900,2500)) Else
+        Begin
+          If Debug Then
+            Writeln('Inventory not full yet, going slow');
+          Wait(randomrange(1900,2500))
+        End Else
           If (Count=0) And (Method=3) Then
-            ToBank Else
-            FindGoldDTM;
+          Begin
+            If Debug Then
+              Writeln('Headed to bank b/c no more ores');
+            ToBank;
+            Break;
+          End Else
+            If (Method=4) Then
+            Begin
+              FindGoldDTM;
+              Break;
+            End;
       End Else
       Begin
+        If Debug Then
+          Writeln('No Uptext found for superheat');
         TypeByte(VK_ENTER);
-        TypeSend(Superheats);
+        Wait(RandomRange(500,600));
+        TypeByte(VK_ESCAPE);
       End;
     End;
     If TimeFromMark(T)>10000 Then
     Begin
+      If Debug Then
+        Writeln('Been too long for superheating, trying backup');
       SuperHeatBackup(False);
       Break;
     End;
+    Wait(Random(200));
   End;
   FreeDTM(Spell);
 
@@ -2462,7 +2527,7 @@ Begin
       MarkTime(XPInvTimer);
     End;
 
-    If (Method=1) Then
+    If (Method=1) And (ActionBar) Then
       If InvCount>10 Then
       Begin
         DropLRC(True,True,True);
@@ -2590,7 +2655,7 @@ Begin
         Writeln('Made it to low spot');
       Spot:=1;
     End Else
-      Exit;
+      SPS_BlindWalk(Point(325, 25));
   End Else
   Begin
     If Debug Then
@@ -2603,7 +2668,7 @@ Begin
         Writeln('Arrived at spot 2, high spot');
       Spot:=2;
     End Else
-      Exit;
+      SPS_BlindWalk(Point(198, -49));
   End;
 
   Moving;
@@ -2663,9 +2728,9 @@ Begin
           If Debug Then
             Writeln('EmptySpot too high, going to look for coal');
 
-          If SPS_BLINDWALK(Point(309, -38)) Then
+          If SPS_WALKPATH(LRCPaths(4, False)) Then
             Spot:=3 Else
-            Exit;
+            SPS_BLINDWALK(Point(309, -38));
 
           Moving;
 
@@ -3088,8 +3153,7 @@ Begin
   ToggleXPBar(True);
   StartingExperience:=GetXPBarTotal;
   HP:=GetMaxHP;
-
-  SetChat('Off',1);
+  Writeln('Approximate Max HP: '+ToStr(HP));
   Spot:=1;
   Marktime(Timeout);
 
@@ -3128,11 +3192,11 @@ Begin
   End;
 
   Case Method Of
-    0: Writeln('I see you are banking your junk, good luck!');
-    1: Writeln('You are using the drop only method...sucka!');
-    2: Writeln('You are using the alching method...goodbye gold');
-    3: Writeln('You are using the superheating and banking method..You are a boss');
-    4: Writeln('You are using the superheating and dropping method...What a waste!');
+    0: Begin Writeln('I see you are banking your junk, good luck!'); End;
+    1: Begin ToggleActionBar(True); Writeln('You are using the drop only method...sucka!'); End;
+    2: Begin ToggleActionBar(True); Writeln('You are using the alching method...goodbye gold'); End;
+    3: Begin ToggleActionBar(True); Writeln('You are using the superheating and banking method..You are a boss'); End;
+    4: Begin ToggleActionBar(True); Writeln('You are using the superheating and dropping method...What a waste!'); End;
   End;
   If Debug Then
     FunctionStop:= 'Setup: Finished';
