@@ -1,4 +1,5 @@
 Program AshamanggzzLRC;
+  {$IFDEF RAYMONDPOWNS}{wrappers} function FloodFillTPAWrap(const TPA: TPointArray): T2DPointArray; var tempATPA: T2DPointArray; begin tempATPA:= FloodFillTPA(TPA); Result:= tempATPA; SetLength(tempATPA, 0); end; function FindTPAEdges(const p: TPointArray): TPointArray; begin FindTPAEdgesWrap(p, result); end; Function RotatePoints(Const P: TPointArray; A, cx, cy: Extended): TPointArray; begin RotatePointsWrap(P, A, cx, cy, result); end; function TPAFromCircle(const CX, CY, Radius: Integer): TPointArray; begin TPAFromCircleWrap(CX, CY, Radius, result); end; function TPAFromEllipse(const CX, CY, XRadius, YRadius : Integer): TPointArray; begin TPAFromEllipseWrap(CX, CY, XRadius, YRadius, result); end; function TPAFromBox(const Box : TBox) : TPointArray; begin TPAFromBoxWrap(Box, result); end; Function ReturnPointsNotInTPA(Const TotalTPA: TPointArray; const Box: TBox): TPointArray; begin ReturnPointsNotInTPAWrap(TotalTPA, Box, result); end; function CombineIntArray(const Ar1, Ar2: TIntegerArray): TIntegerArray; begin CombineIntArrayWrap(Ar1, Ar2, result); end; function ReArrangeandShortenArray(const a: TPointArray; Dist: Integer): TPointArray; begin ReArrangeandShortenArrayWrap(a, Dist, result); end; function ReArrangeandShortenArrayEx(const a: TPointArray; w, h: Integer): TPointArray; begin ReArrangeandShortenArrayExWrap(a, w, h, result); end; function CombineTPA(const Ar1, Ar2: TPointArray): TPointArray; begin CombineTPAWrap(Ar1, Ar2, Result); end; function RemoveDistTPointArray(x, y, dist: Integer;const ThePoints: TPointArray; RemoveHigher: Boolean): TPointArray; begin RemoveDistTPointArrayWrap(x, y, dist, ThePoints, RemoveHigher, Result); end; function TPAFromText(const text, font: String; var w,h: Integer): TPointArray; begin TPAFromTextWrap(text, font, w, h, result); end; function GetColors(const Coords: TPointArray): TIntegerArray; begin GetColorsWrap(Coords, Result); end; function Explode(del, str: string): TStringArray; begin ExplodeWrap(del, str, Result); end; function MergeATPA(const ATPA : T2DPointArray): TPointArray; begin MergeATPAWrap(ATPA, Result); end; function SplitTPA(arr : TPointArray; dist : Integer) : T2DPointArray; begin SplitTPAWrap(arr, dist, result); end; function SplitTPAEx(arr : TPointArray; w, h : integer) : T2DPointArray; begin SplitTPAExWrap(Arr, w, h, result); end; function ClearTPAFromTPA(arP, ClearPoints : TPointArray) : TPointArray; begin ClearTPAFromTPAWrap(arP, ClearPoints, result); end; function TPAToATPAEx(arP : TPointArray; w, h : integer) : T2DPointArray; begin TPAtoATPAExWrap(arP, w, h, result); end; function TPAToATPA(arP : TPointArray; dist : Integer) : T2DPointArray; begin TPAtoATPAWrap(arP, dist, result); end; function FindGapsTPA(TPA : TPointArray; MinPixels : integer) : T2DPointArray; begin FindGapsTPAWrap(tpa, MinPixels, result); end; {$ENDIF}
   {$Define Smart}
   {$I SRL/SRL.Simba}
   {$I Sps/Sps.Simba}
@@ -20,9 +21,6 @@ Const
   SRLStats_Username = '';         // ***Leave blank if you don't have a stats account***
   SRLStats_Password = '';
 
-  {Enhance Excalibur Support}
-  EnhancedExcalibur = False;      // ***True to use enhanced excalibur for healing***
-
   {For Alch or Superheat Methods}
   SFS = True;                     // ***Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work)***
   JIC = True;                     // ***If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false***
@@ -37,10 +35,9 @@ Const
   {Overall Methods}
   ActionBar = True;               // ***Do you want to use the action bar to drop/superheat/alch?***
   DMP = True;                     // ***If the SPS Maps aren't found, Download them and save them automatically, you should leave this as true***
-  DTM = True;                     // ***Use DTM Method? Faster!***
 
   {Break Settings}
-  SwitchWorlds = False;           // ***Switch worlds after a break?***
+  TakeBreaks   = True;            // ***Do you want to take breaks?***
   BreakIn      = 600;             // ***How long before we take a break? (minutes)***
   BreakFor     = 15;              // ***How long will we break for? (minutes)***
   Bir          = 13;              // ***Random minutes to add/subtract from how long until we break***
@@ -56,7 +53,7 @@ Begin
     Name        := '';
     Pass        := '';
     PTS         := 0;             // ***Pouch To Summon.. 1 for Titan, 0 for nothing, 2 for Golem***
-    WorldInfo   := [77,84]
+    WorldInfo   := [84]           // ***Set your favorite world to 84 for faster login***
     Active      := True;
   End;
 End;
@@ -71,18 +68,20 @@ End;
 
 
 Const
-  ScriptVersion = '6.8';
+  ScriptVersion = '6.9';
   E = 200;
   F = 462;
   Debug = False;
   POSDebug = False;
   AnimationDebug = False;
+  DTM = True;                     // ***Use DTM Method? Faster!***
 
 Var
- T,Spot,ET,SpotDTM,A,B,C,D,GoldX,GoldY: Integer;
- W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks,Timeout: Integer;
+ T,Spot,SpotDTM,A,B,C,D,GoldX,GoldY,CoalTimer: Integer;
+ StartTime,CurrentTime: Int64;
+ W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks,Timeout,Timeout2: Integer;
  OreCount,XP,OneOre,BarDTM,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
- XPH,OresPH,HP: Extended;
+ XPH,OresPH,HP,OldHP: Extended;
  HeatAlch,SafeBank: Boolean;
  Off,FunctionStop: String;
 
@@ -106,7 +105,7 @@ Begin
     WriteLn('Newer script version online!');
     WriteLn('Autoupdating to newer version.');
     NewScript := GetPage('http://ashamanggzzlrcminer.googlecode.com/git/AshamanggzzLRC.simba');
-    NeiFeilNennen := ScriptPath+ 'Ashaman&ggzzLRC V'+OnlineVersion+' by Ashaman88&Brandon.simba';
+    NeiFeilNennen := ScriptPath+ 'LRC Miner V'+OnlineVersion+' by A&B.simba';
     Neifile := Rewritefile(NeiFeilNennen, true);
     Try
       WriteFileString(Neifile, NewScript);
@@ -155,6 +154,9 @@ Begin
   If Not LoggedIn Then
     Exit;
 
+  If Not TakeBreaks Then
+    Exit;
+
   If (HowManyPlayers = 1) Then
   Begin
     If (GetTimeRunning < ((W) + (Y) + BreakRounds)) Then
@@ -171,11 +173,10 @@ Begin
           Writeln('Breaktime left: '+IntToStr(H)+':'+IntToStr(M)+':'+IntToStr(S));
         Until(TimeFromMark(CurrentBTime)>(X+Z));
         Writeln('Logging in.');
-        If SwitchWorlds Then
-          If LoginPlayerToLob Then
-            ChangeWorld(RandomWorld(True, False)) Else
-            LoginPlayer;
+        LoginPlayer;
         Wait(4000);
+        MarkTime(Timeout);
+        MarkTime(Timeout2);
         Result := LoggedIn;
         ClickNorth(SRL_ANGLE_HIGH);
         IncEx(BreakRounds, (W) + (X));
@@ -193,8 +194,12 @@ Function WaitLoggedIn(Time:Integer): Boolean;
 Var
   T: Integer;
 Begin
+  Result:= (GetColor(472, 490) = 16777215);
+  If Result Then
+    Exit;
   MarkTime(T);
   Repeat
+    Wait(Random(100));
     SRL_ResetNavBar;
     If TimeFromMark(T)>Time Then
     Begin
@@ -323,8 +328,85 @@ Begin
   HumanMMouse(FX,FY,0,0)
 End;
 
-Function CheckStuff: Boolean; Forward;
-Function Runaways: Boolean; Forward;
+// These time procedures are written by Le Jingle!
+
+procedure ConvertTime64(timeMS: int64; var year, month, day, hour, minute, second: integer);
+
+var
+
+  x: int64;
+
+begin
+
+  x := timeMS;
+
+
+
+  year := x div (1000 * 60 * 60 * 24 * 365); // 31,536,000,000 ms or 1 yr.
+
+  x := x mod (1000 * 60 * 60 * 24 * 365);
+
+
+
+  month := x div (1000 * 60 * 60 * 24 * 30);
+
+  x := x mod (1000 * 60 * 60 * 24 * 30);
+
+
+
+  day := x div (1000 * 60 * 60 * 24);
+
+  x := x mod (1000 * 60 * 60 * 24);
+
+
+
+  hour := x div (1000 * 60 * 60);
+
+  x := x mod (1000 * 60 * 60);
+
+
+
+  minute := x div (1000 * 60);
+
+  x := x mod (1000 * 60);
+
+
+
+  second := x div (1000);
+
+  x := x mod (1000);
+
+end;
+
+
+
+function MsToTime64(MS: int64): string;
+
+var
+
+  STA: TVariantArray;
+
+  Time: array [0..5] of Integer;
+
+  i: Integer;
+
+begin
+
+  Result := '';
+
+  STA := [' Years, ', ' Months, ', ' Days, ', ' Hours, ', ' Minutes and ', ' Seconds', False, 0];
+
+  ConvertTime64(MS, Time[0], Time[1], Time[2], Time[3], Time[4], Time[5]);
+
+  for i := 0 to 5 do
+
+    if (Time[i] > 0) or (STA[6]) or (i = 5) then
+
+      Result := Result + PadZ(IntToStr(Time[i]), STA[6]) + STA[i];
+
+end;
+
+Function ToBank: Boolean; Forward;
 
 (*
 MmmWeGotOff
@@ -373,12 +455,12 @@ Begin
       3: HumanMMouse(W/2, h+RandomRange(10,50), RX, 0);
       4: HumanMMouse(W+RandomRange(10,50), H/2, 0, RY);
     End;
+    RT:=(Random(rWait));
+    MarkTime(T);
+    Repeat
+      Wait(Random(200));
+    Until TimeFromMark(T)>(LeWait+RT);
   End;
-  RT:=(Random(rWait));
-  MarkTime(T);
-  Repeat
-    Wait(Random(200));
-  Until TimeFromMark(T)>(LeWait+RT);
 End;
 
 //by Home
@@ -501,11 +583,11 @@ Begin
     201..600:
       Begin
         Wait(RandomRange(1250, 1500));
-        //OffMM(Random(4),RandomRange(2500,4000),8000);
+        OffMM(Random(4),RandomRange(2500,4000),2000);
         Result:=True;
       End;
   End;
-  If InvCount<25 Then
+  If (InvCount<25) And ((HPLevel > (HP*0.75))) Then
     Wait(RandomRange(3000,4000));
 End;
 
@@ -531,166 +613,6 @@ Begin
   Result := True;
 End;
 
-function CustomLoginPlayer: Boolean;
-var
-  RetryLogin: Boolean;
-  Actions: TVariantArray;                                         //Method
-  T, Attempts: LongInt;
-label
-  ProcStart;
-begin
-  ProcStart:
-  //Writeln('1');
-  if (not (Result)) then    {Check if Logged in}
-    Result := LoggedIn;
-  //Writeln('2');                                                  //Method
-  if (Result) then
-  begin
-    Result := True;
-    AddToSRLLog('Current player: ' + Capitalize(Players[CurrentPlayer].Name));
-    SRL_ExitedSquealOfFortune := false;
-    PlayerStartTime := GetSystemTime; // PlayerStartTime
-    if (SRL_Procs[srl_OnLogIn] <> nil) then
-      SRL_Procs[srl_OnLogIn]();
-
-    Exit;
-  end;
-
-  MarkTime(T);
-  //Writeln('4');                                                    //Method
-  if (not (LoginPlayerToLob)) then    {Get to lobby screen}
-    Exit;
-    //Writeln('5');
-  Wait(500 + Random(500));
-                          {Click Here to Play}
-  If TimeFromMark(T)>45000 Then
-    Exit;
-                                                                  //Method
-  if (LobbyScreen) then
-    MouseBox(270, 450, 490, 470, mouse_left);
-
-                            {Check responses}
-  T := GetSystemTime;
-  repeat                                                             //Method
-
-    SetLength(Actions, 0);
-    if ((GetSystemTime - T) > 60000) then
-      Actions :=       ['One minute has passed...  Debug: ' + ToStr(CountColor(LOGIN_TEXTCOLOUR, 260, 140, 510, 400)),                    0,     0,  'NextPlayer',   'Login Failed']
-    else
-    case (CountColor(LOGIN_TEXTCOLOUR, 260, 140, 510, 400)) of //text colour points
-                        // WriteLn Error                          Wait for   Retrys  Action     Player[CurrentPlayer].Loc
-       364: Actions := ['Error Connecting.',                       20000,     9,  'Terminate',    'Error Connecting'];
-       850: Actions := ['You need skill total of 1000.',               0,     9,  'PlayerTrue',   '1000 skill club'];
-      1028: Actions := ['You are standing in a members-only area.',    0,     1,  'PlayerFalse',  'In Mems-Only Area'];
-      1239: Actions := ['Not a Members Account',                       0,     1,  'PlayerFalse',  'Non-member'];
-	     777: Actions := ['Login limit exceeded.',                       0,     10, '',             'Waiting for login.'];     //Method
-       951: Actions := ['Your account is already logged in',        5000,     5,  'PlayerTrue',   'Already logged in'];
-       591: Actions := ['Client token changed.',                       0,     0,    'RSUpdate',   'Client Token Changed'];
-      1606: Actions := ['Game session expired.',                       0,     0,    'RSUpdate',   'Session Expired'];
-        -1: Actions := ['You need skill total of 1500.',               0,     9,  'PlayerTrue',   '1500 skill club'];
-        -1: Actions := ['You need 20 combat for PvP',                  0,     1,  'PlayerFalse',  'PvP warning'];
-    end;
-
-    if (CountColor(clWhite, 415, 336, 476, 356) = 82) then // HRW login button white colour points
-    begin
-      Wait(RandomRange(500, 1000));
-      if (Length(Players[CurrentPlayer].WorldInfo) > 2) then
-      begin
-        if (Players[CurrentPlayer].WorldInfo[2]) then
-          MouseBox(391, 361, 498, 383, mouse_left)            //Method
-        else begin
-          MouseBox(263, 362, 372, 383, mouse_left);
-          Players[CurrentPlayer].WorldInfo := [False, 0, AllowPVP];
-          RetryLogin := True;
-          Break;
-        end;
-      end
-      else
-        if (AllowPVP) then
-          MouseBox(391, 361, 498, 383, mouse_left)
-        else
-          MouseBox(263, 362, 372, 383, mouse_left);
-      Wait(3000 + Random(2000));
-      RetryLogin := true;
-    end;                                        //Method
-
-                             {Respond}
-
-    if (Length(Actions) > 0) then
-    begin
-      WriteLn(Actions[0]);
-      Wait(Actions[1] + Random(100));                               //Method
-      if (Actions[2] <> 0) then
-        if (Attempts < Actions[2]) or (Actions[2] = -1) then
-        begin
-          case Actions[0] of
-            'You are standing in a members-only area.': begin
-                                                          Players[CurrentPlayer].Member := True;
-                                                          Players[CurrentPlayer].WorldInfo := [True, 0, AllowPVP];
-                                                        end;
-            'You need 20 combat for PvP': Players[CurrentPlayer].WorldInfo := [Players[CurrentPlayer].Member, 0, False];
-            'Not a Members Account': begin
-                                       Players[CurrentPlayer].Member := False;
-                                       Players[CurrentPlayer].WorldInfo := [False, 0, AllowPVP];   //Method
-                                     end;
-		       	'Login limit exceeded.': begin
-											                 Writeln('Runescape is lagging or we''re logged in too many times.  Keep trying!');
-                                       Players[CurrentPlayer].WorldInfo := [players[currentPlayer].member, 0, AllowPVP];
-                                       Wait(5000+Random(10000));
-											               end;
-            'You need skill total of 1000.': players[currentPlayer].worldInfo := [players[currentPlayer].member, 0, allowPVP];
-          end;
-          RetryLogin := True;
-          Wait(2000 + Random(1000));
-          Break;
-        end;
-      if (Actions[4] <> '') then
-        Players[CurrentPlayer].Loc := Actions[4];           //Method
-      case Actions[3] of
-        'PlayerFalse': NextPlayer(False);
-        'PlayerTrue':
-          begin
-            LeaveLobby();
-            NextPlayer(True);
-          end;                                                      //Method
-        'Terminate': TerminateScript;
-        'RSUpdate':
-          begin
-            wait(randomRange(1000, 1500));
-            typeByte(VK_ESCAPE);
-            leaveLobby();
-
-            if (SRL_Procs[srl_OnRSUpdate] <> nil) then
-            begin
-              SRL_Procs[srl_OnRSUpdate]();                                 //Method
-              Exit;
-            end;
-            Writeln('Runescape has been updated! Please restart Simba.');
-          end;
-      end;
-      Exit;
-    end;
-    Wait(100);
-    Result := (LoggedIn);
-  until (Result);
-
-                     {Back to lobby screen if needed}
-
-  if (RetryLogin) then
-  begin
-    RetryLogin := False;                                                         //Method
-    Inc(Attempts);
-    goto ProcStart;
-  end;
-
-                      {Set player start time ect...}
-
-  if (Result) then
-    goto ProcStart;
-
-end;
-
-
 Procedure ProgressReport;
 Var
   TTB: Integer;
@@ -699,6 +621,7 @@ Begin
     ClearDebug;
 
   TTB := (((W) + (Y) + BreakRounds)-GetTimeRunning);
+  CurrentTime:= GetSystemTime - StartTime;
 
   OreCount := OreCount + CountItems('DTM',GoldDTM,[])+CountItems('DTM',CoalDTM,[]);
   XP := (GetXPBarTotal - StartingExperience);
@@ -707,13 +630,14 @@ Begin
 
   Writeln('========Ashaman&ggzzLRC=========');
   Writeln('==========Version: '+ScriptVersion+'==========');
-  Writeln('Time Running: ' + TimeRunning);
+  Writeln('Time Running: ' + ToStr(MsToTime64(CurrentTime)));
   Writeln('Ores Mined: ' + IntToStr(OreCount));                       //Method
   Writeln('Experience Earned: ' + IntToStr(XP));
   Writeln('Experience/Hour: ' + ToStr(XPH));
   Writeln('Ores/H: ' + ToStr(OresPH));
   Writeln('================================');
-  Writeln('Time until break: '+MsToTime(TTB, Time_Bare));
+  If TakeBreaks Then
+    Writeln('Time until break: '+MsToTime(TTB, Time_Bare));
 
   Stats_IncVariable('Gold Ore (Mined)', CountItems('DTM',GoldDTM,[]));
   Stats_Commit;
@@ -724,10 +648,16 @@ Begin
   Result:=False;
 
   If Not WaitLoggedIn(1000) Then
-  Begin                                                  //Method
-    LoginPlayer;
-    ClickNorth(SRL_ANGLE_HIGH);
-    Result:=True;
+  Begin
+    SmartSetEnabled(False);
+    SmartSetEnabled(True);
+    If Not WaitLoggedIn(1000) Then
+    Begin                                                 //Method
+      LoginPlayer;
+      Wait(RandomRange(4000,6000));
+      ClickNorth(SRL_ANGLE_HIGH);
+      Result:=True;
+    End;
   End;
 
   If TimeFromMark(Timeout)>120000 Then
@@ -737,7 +667,27 @@ Begin
     SmartSetEnabled(True);
     MarkTime(Timeout);
     ClickNorth(SRL_ANGLE_HIGH);
-    SPS_BlindWalk(Point(260, -125));
+    If Not ToBank Then
+    Begin
+      Writeln('Did not get to bank, logging in and out to reset map');
+      ExitToLobby;
+      Wait(RandomRange(2500,3500));
+
+      If Debug Then
+        Writeln('Loging back in');
+
+      LoginPlayer;
+      Wait(RandomRange(2000,3000));                                                                    //Method
+      ClickNorth(SRL_ANGLE_HIGH);
+      ToBank;
+    End;
+  End;
+
+  If TimeFromMark(Timeout2)>300000 Then
+  Begin
+    Writeln('Nothing has happened for too long, shutting down.');
+    Logout;
+    TerminateScript;
   End;
 
   If FindSpinTicket Or ExitSquealOfFortune Then
@@ -847,9 +797,11 @@ Begin
       GetMousePos(X, Y);
       Wait(RandomRange(200,300));
       CheckStuff;
+      If Not WaitLoggedIn(1000) Then
+        Exit;
     Until(PointInBox(Point(X, Y), IntToBox(691, 131, 720, 159)));
 
-    Result:= (Not WaitUptextMulti(['elect', 'lect'], RandomRange(400,500)));
+    Result:= (Not WaitUptextMulti(['Pet', 'et '], RandomRange(200,300)));
   End;
 
   If Debug Then
@@ -1009,14 +961,19 @@ Begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
-  If ((HPLevel < (HP*0.65))) Then
+  If OldHP < HPLevel Then
+    If OldHP <> -1 Then
+      Exit;
+
+  If ((HPLevel < (HP*0.80))) Then
   Begin
     If HPLevel=-1 Then
       Exit;
+    OldHP:=HPLevel;
     If Debug Then
       Writeln('HP LOW '+ToStr(HPLevel)+' RUNNING AWAY');
     If Debug Then
-      Writeln('HP Threshold '+ToStr((HP*10*0.65)));              //Method
+      Writeln('HP Threshold '+ToStr((HP*0.80)));              //Method
 
     If (Spot = 1) Or (Spot = 3) Then
     Begin
@@ -1031,29 +988,41 @@ Begin
     End;
 
     MovingSafe;
-    Wait(RandomRange(8000,10000));
+    MarkTime(T);
+    Repeat
+      Wait(Random(1000));
+      If (TimeFromMark(T)>15000) Or (Not WaitLoggedIn(1000)) Then
+        Break;
+    Until Not HasTarget;
 
     If Debug Then
-        Writeln('Logging out to get monster off you');
+      Writeln('Checking if Monster is still there');
 
-    ExitToLobby;
-    Wait(RandomRange(2500,3500));
-    HumanMMouse(100,100,100,100);
+    If HasTarget Then
+      If (Spot = 1) Or (Spot = 3) Then
+      Begin
+        If Debug Then
+          Writeln('Running from low spots');
+        SPS_WalkPath(LRCPaths(1, True));
+      End Else
+      Begin
+        If Debug Then
+          Writeln('Running from high spot');
+        SPS_WalkPath(LRCPaths(2, True));
+      End;
 
-    If Debug Then
-        Writeln('Logging back in');
+    Result := True;
 
-    CustomLoginPlayer;                                             //Method
+    If (HPLevel > (HP*0.69)) Then
+      Exit;
 
     MarkTime(T);
     Repeat
       Wait(100);
-      If TimeFromMark(T)>10000 Then
+      If (TimeFromMark(T)>10000) Or (Not WaitLoggedIn(1000)) Then
         Break;
       CheckStuff;
     Until(Setrest);
-
-    ClickNorth(SRL_ANGLE_HIGH);
 
     If Debug Then
         Writeln('Waiting to heal');
@@ -1063,111 +1032,18 @@ Begin
       RandomRClick;                                                 //Method
       CheckStuff;
       MarkTime(Timeout);
-    Until((HPLevel > (HP*0.65)));
+      MarkTime(Timeout2);
+      If Not WaitLoggedIn(1000) Then
+        Break;
+    Until((HPLevel > (HP*0.69)));
 
     If Debug Then
       Writeln('All healed');
 
     SummoningRenew(PTS);
-    Result := True
   End;
   If Debug Then
     FunctionStop:= 'Runaways: finished';
-End;
-
-Function EE: Boolean;
-Var
-  EEx,X,Y: Integer;
-Begin
-  Result:=False;
-
-  If Debug Then
-    FunctionStop:= 'EE: Entered';
-
-  CheckStuff;
-
-  If Not WaitLoggedIn(1000) Then
-    Exit;
-                                                                     //Method
-  If EnhancedExcalibur Then
-  Begin
-    If ((HPLevel < (HP*10*0.70))) Then
-    Begin
-      If Debug Then
-        Writeln('Attempting to use EE');
-
-      If TimeFromMark(ET) < 300000 Then
-      Begin
-        Writeln('Not enough special bar');
-        If Debug Then
-          Writeln('Time from last EE use '+ToStr(TimeFromMark(ET)));
-        Exit;
-      End;
-
-      EEx := DTMFromString('mbQAAAHicY2VgYNjFxMBwCIjXQPFGIL7ByMBwAYifAvF9IH4CxH0dHQyt9fUMJhoCDI4OdgyGBvoM/ED96JgRCwYDANBxDRY=');
-
-      GameTab(Tab_Inv);
-
-      If (Not FindDTM(EEx, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
-      Begin
-        If Debug Then
-          Writeln('Did not find EE checking equipment');
-
-        GameTab(Tab_Equip);
-        Wait(RandomRange(400,500));
-
-        If (Not FindDTM(EEx, X, Y, MIX1, MIY1, MIX2, MIY2)) Then
-        Begin
-          Writeln('Couldnt find EE');
-          FreeDTM(EEx);
-          Exit;
-        End;
-      End Else                                                         //Method
-      Begin
-        MarkTime(T);
-        Repeat
-          If Debug Then
-            Writeln('Equipping EE');
-
-          Mouse(X,Y,2,2,True);
-          Wait(RandomRange(1000,1500));
-        Until (Not FindDTM(EEx, X, Y, MIX1, MIY1, MIX2, MIY2)) Or (TimeFromMark(T)>10000);
-      End;
-
-      If Debug Then
-        Writeln('Clicking special bar');
-
-      GameTab(Tab_Combat);
-      Wait(RandomRange(400,500));
-      MouseBox(576,416,707,428,Mouse_Move);
-
-      If WaitUpTextMulti(['Togg','ggle','cial','tack'],RandomRange(1200,1500)) Then
-      Begin
-        If Debug Then
-          Writeln('Found special bar, clicking');
-
-        ClickMouse2(True);
-        Wait(RandomRange(4000,8000));
-        Writeln('EE used');                                         //Method
-        MarkTime(ET);
-        GameTab(Tab_Inv);
-        Wait(RandomRange(1000,1500));
-        Result:=True;
-      End;
-
-      If (SFS) Then
-      Begin
-        If Debug Then
-          Writeln('re equipping staff');
-
-        Mouse(X,Y,2,2,True);
-      End;
-      FreeDTM(EEx);
-    End;
-  End;
-
-  If Debug Then
-    FunctionStop:= 'EE: Finished';
 End;
 
 Procedure Moving;
@@ -1177,8 +1053,6 @@ Begin
   MarkTime(T);
   Repeat
     CheckStuff;
-    If EE Then
-      Exit;
     If Runaways Then
       Exit;
     If Not FlagPresent Then
@@ -1488,6 +1362,7 @@ Begin
   Begin
     If Debug Then
       Writeln('Did not find the bank');
+    SetLength(TPA,0);
     Exit;
   End;
 
@@ -1513,9 +1388,14 @@ Begin
         Begin                                                        //Method
           Result:=True;
           SetArrayLength(ATPA,0);
+          SetLength(TPA,0);
           Exit;
         End Else
+        Begin
+          SetArrayLength(ATPA,0);
+          SetLength(TPA,0);
           Exit;
+        End;
       End Else
       Begin
         ClickMouse2(False);
@@ -1525,6 +1405,8 @@ Begin
           If Debug Then
             Writeln('Found option to use box');
           Result := True;
+          SetArrayLength(ATPA,0);
+          SetLength(TPA,0);
           Exit;
         End Else
         Begin                                                        //Method
@@ -1532,12 +1414,14 @@ Begin
             Writeln('DIDNT FIND OPTION TO DEPOSIT');
           MouseBox(524,369,538,394,Mouse_Left);
           SetArrayLength(ATPA,0);
+          SetLength(TPA,0);
           Exit;
         End;
       End;
     End;
   End;
   SetArrayLength(ATPA,0);
+  SetLength(TPA,0);
   If Debug Then
     FunctionStop:= 'Bank: Finished';
 End;
@@ -1581,6 +1465,7 @@ Begin
   If FindSymbol(X,Y,'Bank') Then
   Begin
     MarkTime(Timeout);
+    MarkTime(Timeout2);
     Result := True;                                                //Method
     If Debug Then
       Writeln('Found bank symbol');
@@ -1613,12 +1498,11 @@ Begin
     Writeln('Did not get to bank, logging in and out to reset map');
     ExitToLobby;
     Wait(RandomRange(2500,3500));
-    HumanMMouse(100,100,100,100);
 
     If Debug Then
       Writeln('Loging back in');
 
-    CustomLoginPlayer;
+    LoginPlayer;
     CheckStuff;                                                                    //Method
     ClickNorth(SRL_ANGLE_HIGH);
     ToBank;
@@ -1642,6 +1526,9 @@ Begin
 
       MarkTime(T);
       Repeat
+        Wait(Random(100));
+        If Not WaitLoggedIn(1000) Then
+          Exit;
         If TimeFromMark(T) > 5000 Then
         Begin
           If Debug Then
@@ -1865,7 +1752,6 @@ Begin
       Writeln('Found GoldDTM');
     ToggleActionBar(True);
     OreCount := OreCount + CountItems('DTM',GoldDTM,[]);
-    SendKeys(GoldOre, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
     MarkTime(TT);
     Invs:=InvCount;
@@ -1891,7 +1777,7 @@ Begin
           Writeln('Inv Decreased');
       End;
       Wait(Random(200));
-      SendKeys(GoldOre, 10 + Random(10), 10 + Random(10));
+      SmartSendKeys(GoldOre,RandomRange(30,60),RandomRange(30,60))
     Until Not (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   if (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (GoldBars) then
@@ -1900,7 +1786,6 @@ Begin
       Writeln('Found BarDTM');
     ToggleActionBar(True);
     OreCount := OreCount + CountItems('DTM',BarDTM,[]);
-    SendKeys(GoldBar, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
     MarkTime(TT);
     Invs:=InvCount;
@@ -1924,7 +1809,7 @@ Begin
         Invs:=InvCount;
       End;
       Wait(Random(200));
-      SendKeys(GoldBar, 10 + Random(10), 10 + Random(10));
+      SmartSendKeys(GoldBar,RandomRange(30,60),RandomRange(30,60))
     Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   if (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (CoalOres) then
@@ -1932,7 +1817,6 @@ Begin
     If Debug Then
       Writeln('Found Coal to drop');
     OreCount := OreCount + CountItems('DTM',CoalDTM,[]);
-    SendKeys(CoalOre, 10 + Random(10), 10 + Random(10));
     MarkTime(T);
     MarkTime(TT);
     Invs:=InvCount;
@@ -1956,7 +1840,7 @@ Begin
         Invs:=InvCount;
       End;
       Wait(Random(200));
-      SendKeys(CoalOre, 10 + Random(10), 10 + Random(10));
+      SmartSendKeys(CoalOre,RandomRange(30,60),RandomRange(30,60))
     Until Not (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   ProgressReport;
@@ -2023,8 +1907,6 @@ begin
 
   While (Count > 0) do
   begin
-    If EE Then
-      FindGold;
     If RunAways Then
       Break;
 
@@ -2103,8 +1985,6 @@ begin
   MarkTime(T);
   While (Count > 0) do
   begin
-    If EE Then
-      FindGold;
     If RunAways Then
       Break;
 
@@ -2112,7 +1992,7 @@ begin
 
     ClickContinue(True,True);
 
-    SendKeys(Alch, 10 + Random(10), 10 + Random(10));
+    SmartSendKeys(Alch,RandomRange(30,60),RandomRange(30,60))
 
     If Not FindDTM(GOLDDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
       If Not FindDTM(CoalDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
@@ -2184,8 +2064,6 @@ begin
     If Debug Then
       Writeln('FOUND GOLD ORE, STARTING TO HEAT');
 
-    If EE Then
-      FindGold;
     If RunAways Then
       Break;
 
@@ -2295,8 +2173,6 @@ begin
     If Debug Then
       Writeln('FOUND GOLD ORE, STARTING TO HEAT');
 
-    If EE Then
-      FindGold;
     If RunAways Then
       Break;
 
@@ -2304,7 +2180,7 @@ begin
 
     ClickContinue(True,True);
 
-    SendKeys(Superheats, 10 + Random(10), 10 + Random(10));
+    SmartSendKeys(SuperHeats,RandomRange(30,60),RandomRange(30,60))
 
     If FindDTM(GOLDDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
     Begin
@@ -2372,7 +2248,7 @@ End;
 
 Procedure Mining;
 Var
-  X,Y,AniTimer,BegInv,BegXP,XPInvTimer: Integer;
+  X,Y,AniTimer,BegInv,BegXP,XPInvTimer,MaxCoal: Integer;
   L, I: Integer;
   B: TBoxArray;
   BMP, BMP2,PixelShifts: TIntegerArray;
@@ -2405,6 +2281,8 @@ Begin
       BMP[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
   End;
 
+  MaxCoal:=RandomRange(60000,160000);
+
   Repeat
     If CheckStuff Then
     Begin
@@ -2415,18 +2293,20 @@ Begin
       MarkTime(AniTimer);
       MarkTime(XPInvTimer);
       MarkTime(Timeout);
+      MarkTime(Timeout2);
     End;
 
     Wait(Random(100));
 
     If Not WaitLoggedIn(1000) Then
-      Exit;
+      Break;
 
     If BegInv<InvCount Then
     Begin
       MarkTime(XPInvTimer);
       MarkTime(AniTimer);
       MarkTime(Timeout);
+      MarkTime(Timeout2);
       BegInv:=InvCount;
       If Debug Then
         Writeln('Inventory count increased');
@@ -2438,9 +2318,15 @@ Begin
       MarkTime(AniTimer);
       BegXP:=GetXPBarTotal;
       MarkTime(Timeout);
+      MarkTime(Timeout2);
       If Debug Then
         Writeln('Xp increased');
     End;
+
+    If Spot=3 Then
+      If ((Method = 1) Or (Method = 4)) Then
+        If TimeFromMark(CoalTimer)>MaxCoal Then
+          Break;
 
     If Spot=1 Then
     Begin
@@ -2448,7 +2334,7 @@ Begin
         BMP2[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
       For I := 0 To (L - 1) Do
         PixelShifts[I] := CalculatePixelShift(BMP[I],BMP2[I],IntToBox(0,0,(B[I].X2 - B[I].X1),(B[I].Y2-B[I].Y1)));
-      If AverageTIA(PixelShifts)>500 Then
+      If AverageTIA(PixelShifts)>600 Then
       Begin
         If Debug Then
           Writeln('Spot 1 shifted by: '+ToStr(AverageTIA(PixelShifts)));
@@ -2463,23 +2349,18 @@ Begin
             FreeBitmap(BMP[I]);
           If BitmapExists(BMP2[I]) Then
             FreeBitmap(BMP2[I]);
+          End;
+          For I := 0 to (L - 1) Do
+            BMP[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
+          MarkTime(AniTimer);
         End;
-        For I := 0 to (L - 1) Do
-          BMP[I] := BitmapFromClient(B[I].X1,B[I].Y1,B[I].X2,B[I].Y2);
-        MarkTime(AniTimer);
-      End;
-    End Else
-      If WaitFunc(@GoldDTMs,1,RandomRange(2000,4000)) Then
-      Begin
-        MarkTime(AniTimer);
-        If Debug Then
-          Writeln('Mining animation active');
-      End;
-
-    If EE Then
-      If DTM Then
-        FindGoldDTM Else
-        FindGold;
+      End Else
+        If WaitFunc(@GoldDTMs,1,RandomRange(2000,4000)) Then
+        Begin
+          MarkTime(AniTimer);
+          If Debug Then
+            Writeln('Mining animation active');
+        End;
 
     If Runaways Or FindSymbol(X,Y,'Bank') Then
     Begin
@@ -2548,7 +2429,7 @@ Begin
           BegInv:=InvCount;
         End;
 
-    If InvCount<26 Then
+    If (InvCount<26) And ((HPLevel > (HP*0.75))) Then
       AntiBan;
   Until (InvFull);
 
@@ -2651,6 +2532,7 @@ Begin
     If SPS_WALKPATH(LRCPaths(1, False)) Then //bank to low
     Begin
       MarkTime(Timeout);
+      MarkTime(Timeout2);
       If Debug Then
         Writeln('Made it to low spot');
       Spot:=1;
@@ -2664,6 +2546,7 @@ Begin
     If SPS_WalkPath(LRCPaths(2, False)) Then //bank to high spot
     Begin
       MarkTime(Timeout);
+      MarkTime(Timeout2);
       If Debug Then
         Writeln('Arrived at spot 2, high spot');
       Spot:=2;
@@ -2679,6 +2562,7 @@ Begin
     CheckStuff;
     If Not WaitLoggedIn(1000) Then
       Exit;
+    Wait(Random(100));
 
     SkipUp:
     If (Spot=1) Then
@@ -2706,7 +2590,7 @@ Begin
           Setrest;
           Repeat
             MarkTime(Timeout);
-            EE;
+            MarkTime(Timeout2);
             If Runaways Then
               Exit;
             CheckStuff;
@@ -2718,7 +2602,6 @@ Begin
           If Debug Then
             Writeln('Run energy restored');
 
-          Mouse(260,192,4,4,True);
           GoTo SkipUp;
         End;
         CheckStuff;
@@ -2738,6 +2621,7 @@ Begin
           Begin
             If Debug Then
               Writeln('Found coal');
+            MarkTime(CoalTimer);
             Mining;
           End;
 
@@ -2786,6 +2670,7 @@ Begin
             If SPS_WalkPath(LRCPaths(3, True)) Then  //high to low spot
             Begin
               MarkTime(Timeout);
+              MarkTime(Timeout2);
               If Debug Then
                 Writeln('Arrived at spot 1, low spot');
               Spot := 1;
@@ -2825,8 +2710,8 @@ Begin
     Setrest;
     Repeat
       MarkTime(Timeout);
+      MarkTime(Timeout2);
       Wait(100);
-      EE;
       If Runaways Then
         Exit;
       CheckStuff;
@@ -2897,6 +2782,7 @@ Begin
 
   Repeat
     CheckStuff;
+    Wait(Random(100));
     If Not WaitLoggedIn(1000) Then
       Exit;
 
@@ -2925,7 +2811,7 @@ Begin
             Writeln('Run energy low, resting');
           Setrest;
           Repeat
-            EE;
+            Wait(Random(100));
             If Runaways Then
               Exit;
             CheckStuff;
@@ -3044,7 +2930,6 @@ Begin
     Setrest;
     Repeat
       Wait(100);
-      EE;
       If Runaways Then
         Exit;
       CheckStuff;
@@ -3145,6 +3030,7 @@ Begin
 
   DeclarePlayers;
   LoginPlayer;
+  Wait(RandomRange(3000,5000));
 
   Writeln('If you changed more than one character in the script to fix the antileech, you are wrong and probably broke something :)');
   SPS_Setup(RUNESCAPE_SURFACE, ['0_0LRC']);
@@ -3152,16 +3038,27 @@ Begin
   UseFindMod:=False;
   ToggleXPBar(True);
   StartingExperience:=GetXPBarTotal;
+  FindNormalRandoms;
+  Wait(RandomRange(2000,3000));
   HP:=GetMaxHP;
+  OldHP:=HPLevel;
   Writeln('Approximate Max HP: '+ToStr(HP));
   Spot:=1;
   Marktime(Timeout);
+  MarkTime(Timeout2);
+  SetChat('Off',1);
+  Case Random(4) Of
+    0: Begin HumanMouseBox(127,534-50,162,548-50); ClickMouse2(True); End;
+    1: Begin HumanMouseBox(181,534-50,219,548-50); ClickMouse2(True); End;
+    2: Begin HumanMouseBox(238,534-50,280,548-50); ClickMouse2(True); End;
+    3: Begin HumanMouseBox(300,534-50,332,548-50); ClickMouse2(True); End;
+  End;
+  StartTime:=GetSystemTime;
 
   AddOnTerminate('F33DTM');
   If Debug Then
     AddOnTerminate('LastRun');
   SetDTM;
-  Writeln('Ready to gooo');
 
   If ((Method = 2) Or (Method = 3) Or (Method = 4)) Then
   Begin
@@ -3193,7 +3090,7 @@ Begin
 
   Case Method Of
     0: Begin Writeln('I see you are banking your junk, good luck!'); End;
-    1: Begin ToggleActionBar(True); Writeln('You are using the drop only method...sucka!'); End;
+    1: Begin ToggleActionBar(True); Writeln('You are using the drop only method...get that xp!'); End;
     2: Begin ToggleActionBar(True); Writeln('You are using the alching method...goodbye gold'); End;
     3: Begin ToggleActionBar(True); Writeln('You are using the superheating and banking method..You are a boss'); End;
     4: Begin ToggleActionBar(True); Writeln('You are using the superheating and dropping method...What a waste!'); End;
@@ -3205,6 +3102,7 @@ End;
 Begin
   Setup;
   Repeat
+    Wait(Random(100));
     If Not POSDebug Then
     Begin
       If DTM Then
@@ -3218,8 +3116,14 @@ Begin
       End;
     If Not WaitLoggedIn(1000) Then
     Begin
-      LoginPlayer;
-      ClickNorth(SRL_ANGLE_HIGH);
+      SmartSetEnabled(False);
+      SmartSetEnabled(True);
+      If Not WaitLoggedIn(1000) Then
+      Begin
+        LoginPlayer;
+        Wait(RandomRange(4000,5000));
+        ClickNorth(SRL_ANGLE_HIGH);
+      End;
     End;
   Until AllPlayersInactive;
 End.
