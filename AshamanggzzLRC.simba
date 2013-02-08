@@ -1,6 +1,6 @@
 Program AshamanggzzLRC;
   {$IFDEF RAYMONDPOWNS}{wrappers} function FloodFillTPAWrap(const TPA: TPointArray): T2DPointArray; var tempATPA: T2DPointArray; begin tempATPA:= FloodFillTPA(TPA); Result:= tempATPA; SetLength(tempATPA, 0); end; function FindTPAEdges(const p: TPointArray): TPointArray; begin FindTPAEdgesWrap(p, result); end; Function RotatePoints(Const P: TPointArray; A, cx, cy: Extended): TPointArray; begin RotatePointsWrap(P, A, cx, cy, result); end; function TPAFromCircle(const CX, CY, Radius: Integer): TPointArray; begin TPAFromCircleWrap(CX, CY, Radius, result); end; function TPAFromEllipse(const CX, CY, XRadius, YRadius : Integer): TPointArray; begin TPAFromEllipseWrap(CX, CY, XRadius, YRadius, result); end; function TPAFromBox(const Box : TBox) : TPointArray; begin TPAFromBoxWrap(Box, result); end; Function ReturnPointsNotInTPA(Const TotalTPA: TPointArray; const Box: TBox): TPointArray; begin ReturnPointsNotInTPAWrap(TotalTPA, Box, result); end; function CombineIntArray(const Ar1, Ar2: TIntegerArray): TIntegerArray; begin CombineIntArrayWrap(Ar1, Ar2, result); end; function ReArrangeandShortenArray(const a: TPointArray; Dist: Integer): TPointArray; begin ReArrangeandShortenArrayWrap(a, Dist, result); end; function ReArrangeandShortenArrayEx(const a: TPointArray; w, h: Integer): TPointArray; begin ReArrangeandShortenArrayExWrap(a, w, h, result); end; function CombineTPA(const Ar1, Ar2: TPointArray): TPointArray; begin CombineTPAWrap(Ar1, Ar2, Result); end; function RemoveDistTPointArray(x, y, dist: Integer;const ThePoints: TPointArray; RemoveHigher: Boolean): TPointArray; begin RemoveDistTPointArrayWrap(x, y, dist, ThePoints, RemoveHigher, Result); end; function TPAFromText(const text, font: String; var w,h: Integer): TPointArray; begin TPAFromTextWrap(text, font, w, h, result); end; function GetColors(const Coords: TPointArray): TIntegerArray; begin GetColorsWrap(Coords, Result); end; function Explode(del, str: string): TStringArray; begin ExplodeWrap(del, str, Result); end; function MergeATPA(const ATPA : T2DPointArray): TPointArray; begin MergeATPAWrap(ATPA, Result); end; function SplitTPA(arr : TPointArray; dist : Integer) : T2DPointArray; begin SplitTPAWrap(arr, dist, result); end; function SplitTPAEx(arr : TPointArray; w, h : integer) : T2DPointArray; begin SplitTPAExWrap(Arr, w, h, result); end; function ClearTPAFromTPA(arP, ClearPoints : TPointArray) : TPointArray; begin ClearTPAFromTPAWrap(arP, ClearPoints, result); end; function TPAToATPAEx(arP : TPointArray; w, h : integer) : T2DPointArray; begin TPAtoATPAExWrap(arP, w, h, result); end; function TPAToATPA(arP : TPointArray; dist : Integer) : T2DPointArray; begin TPAtoATPAWrap(arP, dist, result); end; function FindGapsTPA(TPA : TPointArray; MinPixels : integer) : T2DPointArray; begin FindGapsTPAWrap(tpa, MinPixels, result); end; {$ENDIF}
-  {$Define Smart}
+  {$Define Smart8}
   {$I SRL/SRL.Simba}
   {$I Sps/Sps.Simba}
   {$I SRL/SRL/Misc/Debug.Simba}
@@ -35,6 +35,7 @@ Const
   {Overall Methods}
   ActionBar = True;               // ***Do you want to use the action bar to drop/superheat/alch?***
   DMP = True;                     // ***If the SPS Maps aren't found, Download them and save them automatically, you should leave this as true***
+  Timeouts = True;                // ***Do you want script to shutdown if nothing has happened for several minutes?***
 
   {Break Settings}
   TakeBreaks   = True;            // ***Do you want to take breaks?***
@@ -68,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '6.9';
+  ScriptVersion = '7.0';
   E = 200;
   F = 462;
   Debug = False;
@@ -77,12 +78,12 @@ Const
   DTM = True;                     // ***Use DTM Method? Faster!***
 
 Var
- T,Spot,SpotDTM,A,B,C,D,GoldX,GoldY,CoalTimer: Integer;
+ T,Spot,SpotDTM,A,B,C,D,GoldX,GoldY,CoalTimer,SummoningTimer,M,NewPouch: Integer;
  StartTime,CurrentTime: Int64;
  W,X,Y,Z,RealBTime,CurrentBTime,BreakRounds,TotalBreaks,Timeout,Timeout2: Integer;
  OreCount,XP,OneOre,BarDTM,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
  XPH,OresPH,HP,OldHP: Extended;
- HeatAlch,SafeBank: Boolean;
+ HeatAlch,SafeBank,NoFamiliar: Boolean;
  Off,FunctionStop: String;
 
  {*******************************************************************************
@@ -330,82 +331,46 @@ End;
 
 // These time procedures are written by Le Jingle!
 
-procedure ConvertTime64(timeMS: int64; var year, month, day, hour, minute, second: integer);
-
+//by LeJingle!!!
+procedure ConvertTime64(timeMS:int64; var YEAR, MONTH, WEEK, DAY, HOUR, MINUTE, SECOND:integer);
 var
-
   x: int64;
-
 begin
-
   x := timeMS;
-
-
-
-  year := x div (1000 * 60 * 60 * 24 * 365); // 31,536,000,000 ms or 1 yr.
-
-  x := x mod (1000 * 60 * 60 * 24 * 365);
-
-
-
-  month := x div (1000 * 60 * 60 * 24 * 30);
-
-  x := x mod (1000 * 60 * 60 * 24 * 30);
-
-
-
-  day := x div (1000 * 60 * 60 * 24);
-
-  x := x mod (1000 * 60 * 60 * 24);
-
-
-
-  hour := x div (1000 * 60 * 60);
-
-  x := x mod (1000 * 60 * 60);
-
-
-
-  minute := x div (1000 * 60);
-
-  x := x mod (1000 * 60);
-
-
-
-  second := x div (1000);
-
-  x := x mod (1000);
-
+  (* Better to do the calculations in my opinion (especially for year) now,
+   * trying at run time usually results in breaking/miscalculation.
+   * Hence, commented out [equilavent] expressions
+   *)
+  YEAR   := x div (31536000000); // 1000 * 60 * 60 * 24 * 365 (1 year or 365 days)
+  x      := x mod (31536000000);
+  MONTH  := x div (2592000000); // 1000 * 60 * 60 * 24 * 30 (1 month or 30 days)
+  x      := x mod (2592000000);
+  WEEK   := x div (604800000); // 1000 * 60 * 60 * 24 * 7 (1 week or 7 days)
+  x      := x mod (604800000);
+  DAY    := x div (86400000); // 1000 * 60 * 60 * 24 (1 day or 24 hours)
+  x      := x mod (86400000);
+  HOUR   := x div (3600000); // 1000 * 60 * 60 (1 hour or 60 minutes)
+  x      := x mod (3600000);
+  MINUTE := x div (60000); // 1000 * 60 (1 minute or 60 seconds)
+  x      := x mod (60000);
+  SECOND := x div (1000); // 1000 (1 second, is in MS format now)
+  x      := x mod (1000);
 end;
-
-
 
 function MsToTime64(MS: int64): string;
-
 var
-
   STA: TVariantArray;
-
-  Time: array [0..5] of Integer;
-
+  Time: array [0..6] of Integer;
   i: Integer;
-
 begin
-
   Result := '';
-
-  STA := [' Years, ', ' Months, ', ' Days, ', ' Hours, ', ' Minutes and ', ' Seconds', False, 0];
-
-  ConvertTime64(MS, Time[0], Time[1], Time[2], Time[3], Time[4], Time[5]);
-
-  for i := 0 to 5 do
-
-    if (Time[i] > 0) or (STA[6]) or (i = 5) then
-
-      Result := Result + PadZ(IntToStr(Time[i]), STA[6]) + STA[i];
-
+  STA := [' Years, ', ' Months, ', ' Weeks, ', ' Days, ', ' Hours, ',
+          ' Minutes and ', ' Seconds', 0];
+  ConvertTime64(MS, Time[0], Time[1], Time[2], Time[3], Time[4], Time[5], Time[6]);
+  for i := 0 to 6 do
+    if (Time[i] > 0) or (STA[7]) or (i = 6) then
+      Result := Result + PadZ(IntToStr(Time[i]), STA[7]) + STA[i];
 end;
-
 Function ToBank: Boolean; Forward;
 
 (*
@@ -656,6 +621,7 @@ Begin
       LoginPlayer;
       Wait(RandomRange(4000,6000));
       ClickNorth(SRL_ANGLE_HIGH);
+      FindNormalRandoms;
       Result:=True;
     End;
   End;
@@ -667,6 +633,7 @@ Begin
     SmartSetEnabled(True);
     MarkTime(Timeout);
     ClickNorth(SRL_ANGLE_HIGH);
+    FindNormalRandoms;
     If Not ToBank Then
     Begin
       Writeln('Did not get to bank, logging in and out to reset map');
@@ -679,16 +646,18 @@ Begin
       LoginPlayer;
       Wait(RandomRange(2000,3000));                                                                    //Method
       ClickNorth(SRL_ANGLE_HIGH);
+      FindNormalRandoms;
       ToBank;
     End;
   End;
 
-  If TimeFromMark(Timeout2)>300000 Then
-  Begin
-    Writeln('Nothing has happened for too long, shutting down.');
-    Logout;
-    TerminateScript;
-  End;
+  If Timeouts Then
+    If TimeFromMark(Timeout2)>300000 Then
+    Begin
+      Writeln('Nothing has happened for too long, shutting down.');
+      Logout;
+      TerminateScript;
+    End;
 
   If FindSpinTicket Or ExitSquealOfFortune Then
     If Not WaitLoggedIn(1000) Then
@@ -716,6 +685,103 @@ Begin
   End Else
     Result:=True;
 End;
+
+function SPS_WalkPathFS(Path: TPointArray): boolean;
+var
+  I, H, T, D, Fails,X,Y,Black: integer;
+  P, MM, MMF: TPoint;
+begin
+  if (not SPS_IsSetup) then
+  begin
+    writeln('SPS ERROR: SPS_Setup was never called');
+    exit;
+  end;
+
+  H := High(Path);
+  T := GetSystemTime + 20000 + Random(5000);
+  Fails := 0;
+
+  while (not Result) and (GetSystemTime < T) and (Fails < 5) do
+  begin
+    If Not WaitLoggedIn(1000) Then
+      Exit;
+
+    If Black>8 Then
+    Begin
+      Writeln('Too much black!');
+      Exit;
+    End;
+
+    RunEnergy(20);
+    P := SPS_GetMyPos();
+
+    for I := H downto 0 do
+    begin
+      If Not WaitLoggedIn(1000) Then
+        Exit;
+      MM := RotatePoint(Point(MMCX + Path[I].X - P.X, MMCY + Path[I].Y - P.Y),
+                        0-rs_GetCompassAngleRadians, MMCX, MMCY);
+
+      if MM = MMF then
+        Inc(Fails);
+
+      D := Distance(MM.X, MM.Y, MMCX, MMCY);
+
+      if (D < 10) then
+        break
+      else
+        if (D < 70) then
+        begin
+          If FindColorTolerance(X,Y,66308,MM.X,MM.Y,MM.X,MM.Y,15) Then
+            Inc(Black);
+          if (SPS_MultiMouse) then
+            MultiMouse(MM.X, MM.Y, 25, 3, false)
+          else
+            Mouse(MM.X, MM.Y, 5, 5, mouse_Left);
+
+          MMF := MM;
+          FFlag(5 + (Integer(I <> H) * 15));
+
+          T := getSystemTime + 20000 + Random(1000);
+ 	        Break;
+        end;
+    end;
+
+    Result := (I = H);
+  end;
+end;
+
+function SPS_BlindWalkFS(P: TPoint): Boolean;
+var
+  Tries: Integer;
+  M: TPoint;
+  ctrlPoints: TPointArray;
+begin
+  if (not SPS_IsSetup) then
+  begin
+    writeln('SPS ERROR: SPS_Setup was never called');
+    exit;
+  end;
+
+  repeat
+    if (not waitLoggedIn(1000)) then
+      Exit;
+
+    M := SPS_GetMyPos();
+
+    if (M.X = -1) then
+      Continue;
+
+    if (Length(ctrlPoints) = 0) then
+      ctrlPoints := TPABetweenPoints(Point(M.X, M.Y), Point(P.X, P.Y), 20 + Random(15), 10);
+
+    Inc(Tries);
+    if (Tries > 20) then
+      Exit;
+
+    Result := SPS_WalkPathFS(ctrlPoints);
+  until(Result);
+end;
 
 Function LRCPaths(Which: Integer; Invert: Boolean): TPointArray;
 Var                                                                                  //Method
@@ -815,9 +881,29 @@ Begin
   Result:= GetMMLevels('summon', ColourString);
 End;
 
+Function GetNPCTimer: Integer;
+Var
+  Text: String;
+  T: Integer;
+Begin
+  MouseBox(697,134,712,151,Mouse_Right);
+  If WaitOptionMulti(['Details','tails','etail'],1500) Then
+  Begin
+    MarkTime(T);
+    Repeat
+      Wait(100);
+      If TimeFromMark(T)>6000 Then
+        Exit;
+    Until (GetCurrentTab)<>(Tab_Inv);
+  End;
+  Text:= GetTextAtExWrap(692, 400, 726, 414, 0, 5, 2, 7647428, 10, 'StatChars');
+  Text:= Copy(Text, 0, High(Text)-3);
+  Result:= StrToIntDef(Text, 0);
+End;
+
 Function SummoningRenew(PouchToSummon: integer): Boolean;
 Var
-  Pouch, X, Y, Tries, Summoning, Empty: Integer;
+  Pouch,X,Y,Tries,Summoning,Empty,H,S: Integer;
 Begin
   If Debug Then
     FunctionStop:= 'SummoningRenew: Entered';
@@ -825,11 +911,25 @@ Begin
   If PouchToSummon = 0 Then                                           //Method
     Exit;
 
+  If NoFamiliar Then
+    ConvertTime(TimeFromMark(SummoningTimer),H,M,S) Else
+    ConvertTime((GetSystemTime)-(SummoningTimer),H,M,S);
+
+  If Debug Then
+    Writeln('Summoning Timer in Minutes: '+ToStr(M));
+  If (M<NewPouch) Then
+  Begin
+    Result:=True;
+    Exit;
+  End;
+
   If UsingFamiliar Then
   Begin
     Result:= True;
     Exit;
   End;
+
+  NoFamiliar:=False;
 
   CheckStuff;
 
@@ -926,6 +1026,7 @@ Begin
       End;
     Until(UsingFamiliar = True);
 
+  MarkTime(SummoningTimer);
   Result:= UsingFamiliar;
   FreeDTM(Pouch);
   FreeDTM(Summoning);
@@ -979,12 +1080,12 @@ Begin
     Begin
       If Debug Then
         Writeln('Running from low spots');
-      SPS_WalkPath(LRCPaths(1, True));
+      SPS_WalkPathFS(LRCPaths(1, True));
     End Else
     Begin
       If Debug Then
         Writeln('Running from high spot');
-      SPS_WalkPath(LRCPaths(2, True));
+      SPS_WalkPathFS(LRCPaths(2, True));
     End;
 
     MovingSafe;
@@ -1003,12 +1104,12 @@ Begin
       Begin
         If Debug Then
           Writeln('Running from low spots');
-        SPS_WalkPath(LRCPaths(1, True));
+        SPS_WalkPathFS(LRCPaths(1, True));
       End Else
       Begin
         If Debug Then
           Writeln('Running from high spot');
-        SPS_WalkPath(LRCPaths(2, True));
+        SPS_WalkPathFS(LRCPaths(2, True));
       End;
 
     Result := True;
@@ -1451,12 +1552,12 @@ Begin
   Begin
     If Debug Then
       Writeln('Walking to bank from lower spots');
-    SPS_WalkPath(LRCPaths(1, True));
+    SPS_WalkPathFS(LRCPaths(1, True));
   End Else
   Begin
     If Debug Then
       Writeln('Walking to bank from higher spot');
-    SPS_WalkPath(LRCPaths(2, True));
+    SPS_WalkPathFS(LRCPaths(2, True));
   End;
 
   CheckStuff;
@@ -1777,6 +1878,7 @@ Begin
           Writeln('Inv Decreased');
       End;
       Wait(Random(200));
+      ClickContinue(True,True);
       SmartSendKeys(GoldOre,RandomRange(30,60),RandomRange(30,60))
     Until Not (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
@@ -1809,6 +1911,7 @@ Begin
         Invs:=InvCount;
       End;
       Wait(Random(200));
+      ClickContinue(True,True);
       SmartSendKeys(GoldBar,RandomRange(30,60),RandomRange(30,60))
     Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
@@ -1840,6 +1943,7 @@ Begin
         Invs:=InvCount;
       End;
       Wait(Random(200));
+      ClickContinue(True,True);
       SmartSendKeys(CoalOre,RandomRange(30,60),RandomRange(30,60))
     Until Not (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
@@ -2529,7 +2633,7 @@ Begin
     If Debug Then
       Writeln('Walking to low spot');
 
-    If SPS_WALKPATH(LRCPaths(1, False)) Then //bank to low
+    If SPS_WalkPathFS(LRCPaths(1, False)) Then //bank to low
     Begin
       MarkTime(Timeout);
       MarkTime(Timeout2);
@@ -2537,13 +2641,13 @@ Begin
         Writeln('Made it to low spot');
       Spot:=1;
     End Else
-      SPS_BlindWalk(Point(325, 25));
+      SPS_BlindWalkFS(Point(325, 25));
   End Else
   Begin
     If Debug Then
       Writeln('Walking to high spot');
 
-    If SPS_WalkPath(LRCPaths(2, False)) Then //bank to high spot
+    If SPS_WalkPathFS(LRCPaths(2, False)) Then //bank to high spot
     Begin
       MarkTime(Timeout);
       MarkTime(Timeout2);
@@ -2551,7 +2655,7 @@ Begin
         Writeln('Arrived at spot 2, high spot');
       Spot:=2;
     End Else
-      SPS_BlindWalk(Point(198, -49));
+      SPS_BlindWalkFS(Point(198, -49));
   End;
 
   Moving;
@@ -2602,6 +2706,9 @@ Begin
           If Debug Then
             Writeln('Run energy restored');
 
+          HumanMMouse(307,312,20,20);
+          ClickMouse2(True);
+
           GoTo SkipUp;
         End;
         CheckStuff;
@@ -2611,9 +2718,9 @@ Begin
           If Debug Then
             Writeln('EmptySpot too high, going to look for coal');
 
-          If SPS_WALKPATH(LRCPaths(4, False)) Then
+          If SPS_WalkPathFS(LRCPaths(4, False)) Then
             Spot:=3 Else
-            SPS_BLINDWALK(Point(309, -38));
+            SPS_BlindWalkFS(Point(309, -38));
 
           Moving;
 
@@ -2634,7 +2741,7 @@ Begin
         If Debug Then
             Writeln('Walking to high spot');
 
-        If SPS_WalkPath(LRCPaths(3, False)) Then //low to high spot
+        If SPS_WalkPathFS(LRCPaths(3, False)) Then //low to high spot
         Begin
           Spot:=2;
           If Debug Then
@@ -2667,7 +2774,7 @@ Begin
             If Debug Then
                 Writeln('Walking from high to low spot');
 
-            If SPS_WalkPath(LRCPaths(3, True)) Then  //high to low spot
+            If SPS_WalkPathFS(LRCPaths(3, True)) Then  //high to low spot
             Begin
               MarkTime(Timeout);
               MarkTime(Timeout2);
@@ -2757,7 +2864,7 @@ Begin
     If Debug Then
       Writeln('Walking to low spot');
 
-    If SPS_WALKPATH(LRCPaths(1, False)) Then //bank to low
+    If SPS_WalkPathFS(LRCPaths(1, False)) Then //bank to low
     Begin
       If Debug Then
         Writeln('Made it to low spot');
@@ -2768,7 +2875,7 @@ Begin
     If Debug Then
       Writeln('Walking to high spot');
 
-    If SPS_WalkPath(LRCPaths(2, False)) Then //bank to high spot
+    If SPS_WalkPathFS(LRCPaths(2, False)) Then //bank to high spot
     Begin
       If Debug Then
         Writeln('Arrived at spot 2, high spot');
@@ -2823,7 +2930,8 @@ Begin
           If Debug Then
             Writeln('Run energy restored');
 
-          Mouse(260,192,4,4,True);
+          HumanMMouse(307,312,20,20);
+          ClickMouse2(True);
           GoTo SkipUp;
         End;
         CheckStuff;
@@ -2833,7 +2941,7 @@ Begin
           If Debug Then
             Writeln('EmptySpot too high, going to look for coal');
 
-          If SPS_BLINDWALK(Point(309, -38)) Then
+          If SPS_BlindWalkFS(Point(309, -38)) Then
             Spot:=3;
 
           Moving;
@@ -2854,7 +2962,7 @@ Begin
         If Debug Then
             Writeln('Walking to high spot');
 
-        If SPS_WalkPath(LRCPaths(3, False)) Then //low to high spot
+        If SPS_WalkPathFS(LRCPaths(3, False)) Then //low to high spot
         Begin
           Spot:=2;
           If Debug Then
@@ -2886,7 +2994,7 @@ Begin
             If Debug Then
                 Writeln('Walking from high to low spot');
 
-            If SPS_WalkPath(LRCPaths(3, True)) Then  //high to low spot
+            If SPS_WalkPathFS(LRCPaths(3, True)) Then  //high to low spot
             Begin
               If Debug Then
                 Writeln('Arrived at spot 1, low spot');
@@ -3030,7 +3138,7 @@ Begin
 
   DeclarePlayers;
   LoginPlayer;
-  Wait(RandomRange(3000,5000));
+  Wait(RandomRange(1100,5000));
 
   Writeln('If you changed more than one character in the script to fix the antileech, you are wrong and probably broke something :)');
   SPS_Setup(RUNESCAPE_SURFACE, ['0_0LRC']);
@@ -3040,6 +3148,9 @@ Begin
   StartingExperience:=GetXPBarTotal;
   FindNormalRandoms;
   Wait(RandomRange(2000,3000));
+  If UsingFamiliar Then
+    SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
+    NoFamiliar:=True;
   HP:=GetMaxHP;
   OldHP:=HPLevel;
   Writeln('Approximate Max HP: '+ToStr(HP));
@@ -3095,6 +3206,12 @@ Begin
     3: Begin ToggleActionBar(True); Writeln('You are using the superheating and banking method..You are a boss'); End;
     4: Begin ToggleActionBar(True); Writeln('You are using the superheating and dropping method...What a waste!'); End;
   End;
+
+  Case PTS Of
+    1: NewPouch:=61;  //titan
+    2: NewPouch:=55;  //golem
+  End;
+
   If Debug Then
     FunctionStop:= 'Setup: Finished';
 End;
