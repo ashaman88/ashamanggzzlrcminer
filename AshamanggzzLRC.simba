@@ -1,6 +1,6 @@
 Program AshamanggzzLRC;
   {$IFDEF RAYMONDPOWNS}{wrappers} function FloodFillTPAWrap(const TPA: TPointArray): T2DPointArray; var tempATPA: T2DPointArray; begin tempATPA:= FloodFillTPA(TPA); Result:= tempATPA; SetLength(tempATPA, 0); end; function FindTPAEdges(const p: TPointArray): TPointArray; begin FindTPAEdgesWrap(p, result); end; Function RotatePoints(Const P: TPointArray; A, cx, cy: Extended): TPointArray; begin RotatePointsWrap(P, A, cx, cy, result); end; function TPAFromCircle(const CX, CY, Radius: Integer): TPointArray; begin TPAFromCircleWrap(CX, CY, Radius, result); end; function TPAFromEllipse(const CX, CY, XRadius, YRadius : Integer): TPointArray; begin TPAFromEllipseWrap(CX, CY, XRadius, YRadius, result); end; function TPAFromBox(const Box : TBox) : TPointArray; begin TPAFromBoxWrap(Box, result); end; Function ReturnPointsNotInTPA(Const TotalTPA: TPointArray; const Box: TBox): TPointArray; begin ReturnPointsNotInTPAWrap(TotalTPA, Box, result); end; function CombineIntArray(const Ar1, Ar2: TIntegerArray): TIntegerArray; begin CombineIntArrayWrap(Ar1, Ar2, result); end; function ReArrangeandShortenArray(const a: TPointArray; Dist: Integer): TPointArray; begin ReArrangeandShortenArrayWrap(a, Dist, result); end; function ReArrangeandShortenArrayEx(const a: TPointArray; w, h: Integer): TPointArray; begin ReArrangeandShortenArrayExWrap(a, w, h, result); end; function CombineTPA(const Ar1, Ar2: TPointArray): TPointArray; begin CombineTPAWrap(Ar1, Ar2, Result); end; function RemoveDistTPointArray(x, y, dist: Integer;const ThePoints: TPointArray; RemoveHigher: Boolean): TPointArray; begin RemoveDistTPointArrayWrap(x, y, dist, ThePoints, RemoveHigher, Result); end; function TPAFromText(const text, font: String; var w,h: Integer): TPointArray; begin TPAFromTextWrap(text, font, w, h, result); end; function GetColors(const Coords: TPointArray): TIntegerArray; begin GetColorsWrap(Coords, Result); end; function Explode(del, str: string): TStringArray; begin ExplodeWrap(del, str, Result); end; function MergeATPA(const ATPA : T2DPointArray): TPointArray; begin MergeATPAWrap(ATPA, Result); end; function SplitTPA(arr : TPointArray; dist : Integer) : T2DPointArray; begin SplitTPAWrap(arr, dist, result); end; function SplitTPAEx(arr : TPointArray; w, h : integer) : T2DPointArray; begin SplitTPAExWrap(Arr, w, h, result); end; function ClearTPAFromTPA(arP, ClearPoints : TPointArray) : TPointArray; begin ClearTPAFromTPAWrap(arP, ClearPoints, result); end; function TPAToATPAEx(arP : TPointArray; w, h : integer) : T2DPointArray; begin TPAtoATPAExWrap(arP, w, h, result); end; function TPAToATPA(arP : TPointArray; dist : Integer) : T2DPointArray; begin TPAtoATPAWrap(arP, dist, result); end; function FindGapsTPA(TPA : TPointArray; MinPixels : integer) : T2DPointArray; begin FindGapsTPAWrap(tpa, MinPixels, result); end; {$ENDIF}
-  {$Define Smart8}
+  {$Define Smart}
   {$I SRL/SRL.Simba}
   {$I Sps/Sps.Simba}
   {$I SRL/SRL/Misc/Debug.Simba}
@@ -69,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '7.0';
+  ScriptVersion = '7.1';
   E = 200;
   F = 462;
   Debug = False;
@@ -148,6 +148,28 @@ Begin
     FreeDTM(SpotDTM);
 End;
 
+Function UsingFamiliar: Boolean; Forward;
+
+Function GetNPCTimer: Integer;
+Var
+  Text: String;
+  T: Integer;
+Begin
+  MouseBox(697,134,712,151,Mouse_Right);
+  If WaitOptionMulti(['Details','tails','etail'],1500) Then
+  Begin
+    MarkTime(T);
+    Repeat
+      Wait(100);
+      If TimeFromMark(T)>6000 Then
+        Exit;
+    Until (GetCurrentTab)<>(Tab_Inv);
+  End;
+  Text:= GetTextAtExWrap(692, 400, 726, 414, 0, 5, 2, 7647428, 10, 'StatChars');
+  Text:= Copy(Text, 0, High(Text)-3);
+  Result:= StrToIntDef(Text, 0);
+End;
+
 Function BreakHandler(BreakIn, BreakFor, randBreakIn, randBreakFor: Integer): Boolean;
 Var
   H,M,S: Integer;
@@ -176,6 +198,9 @@ Begin
         Writeln('Logging in.');
         LoginPlayer;
         Wait(4000);
+        If UsingFamiliar Then
+          SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
+          NoFamiliar:=True;
         MarkTime(Timeout);
         MarkTime(Timeout2);
         Result := LoggedIn;
@@ -622,6 +647,9 @@ Begin
       Wait(RandomRange(4000,6000));
       ClickNorth(SRL_ANGLE_HIGH);
       FindNormalRandoms;
+      If UsingFamiliar Then
+        SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
+        NoFamiliar:=True;
       Result:=True;
     End;
   End;
@@ -647,6 +675,9 @@ Begin
       Wait(RandomRange(2000,3000));                                                                    //Method
       ClickNorth(SRL_ANGLE_HIGH);
       FindNormalRandoms;
+      If UsingFamiliar Then
+        SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
+        NoFamiliar:=True;
       ToBank;
     End;
   End;
@@ -848,6 +879,9 @@ Begin
   If Debug Then
     FunctionStop:= 'USINGFAMILIAR: Entered';
 
+  If PTS = 0 Then
+    Exit;
+
   Result := UsingFamiliarFS Or FindColorTolerance(X, Y, 11192179, 695, 130, 720, 155, 20);
   If (Not Result) Then
   Begin
@@ -881,27 +915,7 @@ Begin
   Result:= GetMMLevels('summon', ColourString);
 End;
 
-Function GetNPCTimer: Integer;
-Var
-  Text: String;
-  T: Integer;
-Begin
-  MouseBox(697,134,712,151,Mouse_Right);
-  If WaitOptionMulti(['Details','tails','etail'],1500) Then
-  Begin
-    MarkTime(T);
-    Repeat
-      Wait(100);
-      If TimeFromMark(T)>6000 Then
-        Exit;
-    Until (GetCurrentTab)<>(Tab_Inv);
-  End;
-  Text:= GetTextAtExWrap(692, 400, 726, 414, 0, 5, 2, 7647428, 10, 'StatChars');
-  Text:= Copy(Text, 0, High(Text)-3);
-  Result:= StrToIntDef(Text, 0);
-End;
-
-Function SummoningRenew(PouchToSummon: integer): Boolean;
+Function SummoningRenew(PouchToSummon: integer; First: Boolean): Boolean;
 Var
   Pouch,X,Y,Tries,Summoning,Empty,H,S: Integer;
 Begin
@@ -917,11 +931,13 @@ Begin
 
   If Debug Then
     Writeln('Summoning Timer in Minutes: '+ToStr(M));
-  If (M<NewPouch) Then
-  Begin
-    Result:=True;
-    Exit;
-  End;
+
+  If Not First Then
+    If (M<NewPouch) Then
+    Begin
+      Result:=True;
+      Exit;
+    End;
 
   If UsingFamiliar Then
   Begin
@@ -1052,7 +1068,7 @@ End;
 
 Function Runaways: Boolean;
 Var
-  T: Integer;
+  T,FailRest: Integer;
 Begin
   If Debug Then
     FunctionStop:= 'Runaways: Entered';
@@ -1062,30 +1078,50 @@ Begin
   If Not WaitLoggedIn(1000) Then
     Exit;
 
-  If OldHP < HPLevel Then
+  If OldHP <= HPLevel Then
+  Begin
+    If Debug Then
+      Writeln('Gained some HP');
     If OldHP <> -1 Then
+    Begin
+      If Debug Then
+        Writeln('Old HP level: '+ToStr(OldHP));
+      OldHP:=HPLevel;
+      If Debug Then
+        Writeln('New HP level: '+ToStr(OldHP));
       Exit;
+    End;
+  End Else
+    If Debug Then
+      Writeln('Lost some HP');
+
+  If Debug Then
+    Writeln('Old HP level: '+ToStr(OldHP));
+  OldHP:=HPLevel;
+  If Debug Then
+    Writeln('New HP level: '+ToStr(OldHP));
 
   If ((HPLevel < (HP*0.80))) Then
   Begin
     If HPLevel=-1 Then
       Exit;
     OldHP:=HPLevel;
-    If Debug Then
-      Writeln('HP LOW '+ToStr(HPLevel)+' RUNNING AWAY');
-    If Debug Then
-      Writeln('HP Threshold '+ToStr((HP*0.80)));              //Method
+    Writeln('HP LOW '+ToStr(HPLevel)+' RUNNING AWAY');
+
+    Writeln('HP Threshold '+ToStr((HP*0.80)));              //Method
 
     If (Spot = 1) Or (Spot = 3) Then
     Begin
       If Debug Then
         Writeln('Running from low spots');
-      SPS_WalkPathFS(LRCPaths(1, True));
+      If Not SPS_WalkPathFS(LRCPaths(1, True)) Then
+        Exit;
     End Else
     Begin
       If Debug Then
         Writeln('Running from high spot');
-      SPS_WalkPathFS(LRCPaths(2, True));
+      If Not SPS_WalkPathFS(LRCPaths(2, True)) Then
+        Exit;
     End;
 
     MovingSafe;
@@ -1099,7 +1135,7 @@ Begin
     If Debug Then
       Writeln('Checking if Monster is still there');
 
-    If HasTarget Then
+    If OldHP <= HPLevel Then
       If (Spot = 1) Or (Spot = 3) Then
       Begin
         If Debug Then
@@ -1114,13 +1150,39 @@ Begin
 
     Result := True;
 
+    Wait(RandomRange(5000,6000));
+
+    If RunEnergy(50) = False Then
+    Begin
+      If Debug Then
+        Writeln('Low energy resting');
+      Setrest;
+      Repeat
+        MarkTime(Timeout);
+        MarkTime(Timeout2);
+        Wait(100);
+        CheckStuff;
+        If Not WaitLoggedIn(1000) Then
+          Exit;
+        If Not SetRest Then
+          Inc(FailRest);
+        If FailRest>5 Then
+          Exit;
+      Until RunEnergy(90);
+      SetRun(True);
+    End;
+
     If (HPLevel > (HP*0.69)) Then
+    Begin
+      Writeln('HP IS '+ToStr(HPLevel));
+      Writeln('HP > Wait Threshold of '+ToStr((HP*0.69)));              //Method
       Exit;
+    End;
 
     MarkTime(T);
     Repeat
       Wait(100);
-      If (TimeFromMark(T)>10000) Or (Not WaitLoggedIn(1000)) Then
+      If (TimeFromMark(T)>5000) Or (Not WaitLoggedIn(1000)) Then
         Break;
       CheckStuff;
     Until(Setrest);
@@ -1136,12 +1198,16 @@ Begin
       MarkTime(Timeout2);
       If Not WaitLoggedIn(1000) Then
         Break;
+      If Not SetRest Then
+        Inc(FailRest);
+      If FailRest>5 Then
+        Exit;
     Until((HPLevel > (HP*0.69)));
 
     If Debug Then
       Writeln('All healed');
 
-    SummoningRenew(PTS);
+    SummoningRenew(PTS,False);
   End;
   If Debug Then
     FunctionStop:= 'Runaways: finished';
@@ -1604,8 +1670,12 @@ Begin
       Writeln('Loging back in');
 
     LoginPlayer;
+    Wait(RandomRange(2500,3500));
     CheckStuff;                                                                    //Method
     ClickNorth(SRL_ANGLE_HIGH);
+    If UsingFamiliar Then
+      SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
+      NoFamiliar:=True;
     ToBank;
   End;
 
@@ -1877,9 +1947,9 @@ Begin
         If Debug Then
           Writeln('Inv Decreased');
       End;
-      Wait(Random(200));
+      Wait(Random(100));
       ClickContinue(True,True);
-      SmartSendKeys(GoldOre,RandomRange(30,60),RandomRange(30,60))
+      SmartSendKeys(GoldOre,RandomRange(20,45),RandomRange(30,60))
     Until Not (FindDTM(GoldDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   if (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (GoldBars) then
@@ -1910,9 +1980,9 @@ Begin
         MarkTime(T);
         Invs:=InvCount;
       End;
-      Wait(Random(200));
+      Wait(Random(100));
       ClickContinue(True,True);
-      SmartSendKeys(GoldBar,RandomRange(30,60),RandomRange(30,60))
+      SmartSendKeys(GoldBar,RandomRange(20,45),RandomRange(30,60))
     Until Not (FindDTM(BarDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   if (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2)) And (CoalOres) then
@@ -1942,9 +2012,9 @@ Begin
         MarkTime(T);
         Invs:=InvCount;
       End;
-      Wait(Random(200));
+      Wait(Random(100));
       ClickContinue(True,True);
-      SmartSendKeys(CoalOre,RandomRange(30,60),RandomRange(30,60))
+      SmartSendKeys(CoalOre,RandomRange(20,45),RandomRange(30,60))
     Until Not (FindDTM(CoalDTM, X, Y, MIX1, MIY1, MIX2, MIY2));
   end;
   ProgressReport;
@@ -2054,7 +2124,7 @@ begin
   FreeDTM(Spell);
 end;
 
-Procedure AlchOres(BankBars: Boolean);
+Function AlchOres(BankBars: Boolean): Boolean;
 Var
   Spell,X,Y,Count,T: Integer;
 begin
@@ -2102,7 +2172,8 @@ begin
       If Not FindDTM(CoalDTM,X, Y, MIX1, MIY1, MIX2, MIY2) Then
         Break;
 
-    CheckStuff;
+    If CheckStuff Then
+      Break;
 
     Count:= ItemAmount('inv', 'dtm', GoldDTM, [])+ItemAmount('inv', 'dtm', CoalDTM, [])-1;
     HumanMMouse(X, Y, 3, 3);
@@ -2113,7 +2184,8 @@ begin
         ClickMouse2(Mouse_Left);
         MarkTime(T);
         If Not InvFull Then
-          Wait(randomrange(1900,2200));
+          Wait(randomrange(1900,2200)) Else
+          Result:=True;
     end else
     Begin
       If Debug Then
@@ -2233,7 +2305,7 @@ begin
     Writeln('FINISHED HEATING');
 End;
 
-Procedure SuperHeat(BankBars: Boolean);
+Function SuperHeat(BankBars: Boolean): Boolean;
 Var
   Spell, X, Y, Count,T: Integer;
 begin
@@ -2294,7 +2366,8 @@ begin
       If Debug Then
         Writeln('FOUND '+ ToStr(Count)+' GOLD ORES');
 
-      CheckStuff;
+      If CheckStuff Then
+        Break;
 
       HumanMMouse(X, Y, 4, 4);
 
@@ -2304,7 +2377,8 @@ begin
           Writeln('Spell active clicking ore');
 
         Count:= ItemAmount('inv', 'dtm', GoldDTM, [])-1;
-        Writeln('Count : '+ToStr(Count));
+        If Debug Then
+          Writeln('Count : '+ToStr(Count));
         ClickMouse2(Mouse_Left);
         MarkTime(T);
 
@@ -2322,10 +2396,7 @@ begin
             Break;
           End Else
             If (Method=4) Then
-            Begin
-              FindGoldDTM;
-              Break;
-            End;
+              Result:=True;
       End Else
       Begin
         If Debug Then
@@ -2521,19 +2592,23 @@ Begin
 
     If (Method = 2) then
     Begin
-      AlchOres(JIC)
+      If AlchOres(JIC) Then
+        Break;
       BegInv:=InvCount;
     End Else
       If (Method = 3) then
         SuperHeat(True) Else
         If (Method = 4) then
         Begin
-          SuperHeat(False);
+          If SuperHeat(False) Then
+            Break;
+          If InvFull Then
+            Break;
           DropLRC(False,True,True);
           BegInv:=InvCount;
         End;
 
-    If (InvCount<26) And ((HPLevel > (HP*0.75))) Then
+    If (InvCount<26) And ((HPLevel > (HP*0.75))) And (Method<>2) And (Method<>3) And (Method<>4) Then
       AntiBan;
   Until (InvFull);
 
@@ -2626,7 +2701,7 @@ Begin
       Writeln('Empty spot reset to 0');
 
   EmptySpot:=0;
-  SummoningRenew(PTS);
+  SummoningRenew(PTS,False);
 
   If (Spot=1) Or (Spot=3) Then
   Begin
@@ -2700,6 +2775,8 @@ Begin
             CheckStuff;
             If Not WaitLoggedIn(1000) Then
               Exit;
+            setrest;
+            wait(100);
           Until RunEnergy(90);
           SetRun(True);
 
@@ -2751,7 +2828,7 @@ Begin
 
         Moving;
         FixPosition;
-        SummoningRenew(PTS);
+        SummoningRenew(PTS,False);
       End;
 
       If Spot=2 Then
@@ -2804,6 +2881,8 @@ Begin
     Begin
       If Debug Then
         Writeln('Dropping for method '+ToStr(Method));
+      If (Method = 4) Then
+        SuperHeat(False);
       DropLRC(True,True,True);
       FindGoldDTM;
     End Else
@@ -2824,6 +2903,7 @@ Begin
       CheckStuff;
       If Not WaitLoggedIn(1000) Then
         Exit;
+      setrest;
     Until RunEnergy(90);
     SetRun(True);
   End;
@@ -2857,7 +2937,7 @@ Begin
       Writeln('Empty spot reset to 0');
 
   EmptySpot:=0;
-  SummoningRenew(PTS);
+  SummoningRenew(PTS,False);
 
   If (Spot=1) Or (Spot=3) Then
   Begin
@@ -2924,6 +3004,7 @@ Begin
             CheckStuff;
             If Not WaitLoggedIn(1000) Then
               Exit;
+            setrest;
           Until RunEnergy(90);
           SetRun(True);
 
@@ -2971,7 +3052,7 @@ Begin
 
         Moving;
         FixPosition;
-        SummoningRenew(PTS);
+        SummoningRenew(PTS,False);
       End;
 
       If Spot=2 Then
@@ -3043,6 +3124,7 @@ Begin
       CheckStuff;
       If Not WaitLoggedIn(1000) Then
         Exit;
+      setrest;
     Until RunEnergy(90);
     SetRun(True);
   End;
@@ -3148,6 +3230,12 @@ Begin
   StartingExperience:=GetXPBarTotal;
   FindNormalRandoms;
   Wait(RandomRange(2000,3000));
+
+  Case PTS Of
+    1: NewPouch:=61;  //titan
+    2: NewPouch:=55;  //golem
+  End;
+
   If UsingFamiliar Then
     SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
     NoFamiliar:=True;
@@ -3207,10 +3295,7 @@ Begin
     4: Begin ToggleActionBar(True); Writeln('You are using the superheating and dropping method...What a waste!'); End;
   End;
 
-  Case PTS Of
-    1: NewPouch:=61;  //titan
-    2: NewPouch:=55;  //golem
-  End;
+  SummoningRenew(PTS,True);
 
   If Debug Then
     FunctionStop:= 'Setup: Finished';
@@ -3240,6 +3325,9 @@ Begin
         LoginPlayer;
         Wait(RandomRange(4000,5000));
         ClickNorth(SRL_ANGLE_HIGH);
+        If UsingFamiliar Then
+          SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
+          NoFamiliar:=True;
       End;
     End;
   Until AllPlayersInactive;
