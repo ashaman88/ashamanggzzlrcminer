@@ -69,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '8.01';
+  ScriptVersion = '8.02';
   E = 200;
   F = 462;
   Debug = False;
@@ -424,16 +424,18 @@ Begin
   Result:=False;
 
   If Not IsLoggedIn Then
-  Begin
-    If Not IsLoggedIn Then
-    Begin                                                 //Method
-      Players[CurrentPlayer].Login;
-      Wait(RandomRange(4000,6000));
-      Minimap.ClickCompass;
-      MainScreen.SetAngle(MS_ANGLE_HIGH);
-      FindNormalRandoms;
-      Result:=True;
-    End;
+  Begin                                                 //Method
+    If Not Players[CurrentPlayer].Login Then
+      TerminateScript;
+    Wait(RandomRange(4000,6000));
+    Minimap.ClickCompass;
+    MainScreen.SetAngle(MS_ANGLE_HIGH);
+    FindNormalRandoms;
+    Timeout.Reset;
+    Timeout.Start;
+    Timeout2.Reset;
+    Timeout2.Start;
+    Result:=True;
   End;
 
   If Timeout.GetTime>120000 Then
