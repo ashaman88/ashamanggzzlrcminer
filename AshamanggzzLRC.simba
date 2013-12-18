@@ -69,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '8.0';
+  ScriptVersion = '8.01';
   E = 200;
   F = 462;
   Debug = False;
@@ -263,7 +263,7 @@ Begin
   Result:=Round((0.0005 * (count * count)) + (0.0549 * count) - 17.599);
 End;
 
-//by Home
+//by Home       //tbox.split(w, h)
 function AreaToBoxArray(const AreaX1, AreaY1, AreaX2, AreaY2, Width, Height: Integer): TBoxArray;
 var
   AreaW, AreaH: Integer;
@@ -621,7 +621,7 @@ Begin
     If Debug Then
       Writeln('Checking if Monster is still there');
 
-    If OldHP >= HPPercent Then
+    If Not AtBank Then
       If (Spot = 1) Or (Spot = 3) Then
       Begin
         If Debug Then
@@ -1941,14 +1941,13 @@ Begin
         If Debug Then
           TakeScreenshot('Fail.bmp');
       If Not GoldDTMs Then
-        If FindGoldDTM Then
+        Break Else
         Begin
           XPInvTimer.Reset;
           XPInvTimer.Start;
           AniTimer.Reset;
           AniTimer.Start;
-        End Else
-          Break;
+        End;
     End;
 
     If Runaways Or Minimap.FindSymbol(P,MM_SYMBOL_BANK,IntToBox(661,83,705,126)) Then
