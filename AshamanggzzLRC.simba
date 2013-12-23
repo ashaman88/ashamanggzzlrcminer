@@ -36,7 +36,7 @@ Const
   Timeouts = True;                // ***Do you want script to shutdown if nothing has happened for several minutes?***
 
   {Break Settings}
-  TakeBreaks   = True;            // ***Do you want to take breaks?***
+  TakeBreaks   = False;            // ***Do you want to take breaks?***
   BreakIn      = 600;             // ***How long before we take a break? (minutes)***
   BreakFor     = 15;              // ***How long will we break for? (minutes)***
   Bir          = 13;              // ***Random minutes to add/subtract from how long until we break***
@@ -69,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '8.02';
+  ScriptVersion = '8.03';
   E = 200;
   F = 462;
   Debug = False;
@@ -127,6 +127,33 @@ Function FindNormalRandoms: Boolean;
 Begin
   Result:= ExitSquealOfFortune Or ClaimSpinTicket;
 End;
+
+procedure mouseOffClient(Direction: Integer; Stay: Boolean);  overload;
+var
+  B: TBoxArray;
+  P: TPoint;
+  i, W, H,X,Y: Integer;
+begin
+  GetClientDimensions(W, H);
+  GetMousePos(X,Y);
+  if (X < 0) or (X > W) or (Y < 0) or (Y > H) then
+     exit;
+
+  SetLength(B, 4);
+
+  B[OFF_CLIENT_TOP] := [-300, -300, W, 0]; // top
+  B[OFF_CLIENT_BOTTOM] := [0, H, W, H +300];  // bottom
+  B[OFF_CLIENT_LEFT] := [0-300, 0, 0, H];   // left
+  B[OFF_CLIENT_RIGHT] := [W, 0, W +300, H];  // right
+
+  if (Direction = OFF_CLIENT_RANDOM) then
+    i := Random(4)
+  else
+    i := Direction;
+
+  P := Point(RandomRange(B[i].X1, B[i].X2), RandomRange(B[i].Y1, B[i].Y2));
+  Mouse(Point(P.X, P.Y), MOUSE_MOVE);
+end;
 
 Procedure SetDTM;
 Begin
@@ -379,7 +406,7 @@ Begin
       End;
     201..600:
       Begin
-        MouseOffClient(4);
+        MouseOffClient(4,True);
         Wait(RandomRange(3000, 15000));
         Result:=True;
       End;
@@ -740,7 +767,7 @@ Begin
     Case Spot Of
       1:
       Begin
-        If LowGold> 460 Then
+        If LowGold> 420 Then
         Begin
           Result:=True;
           GoldX:=246;
@@ -750,7 +777,7 @@ Begin
       End;
       2:
       Begin
-        A:=97;  B:=44;   C:=400;  D:=325;
+        A:=105;  B:=44;   C:=400;  D:=325;
         Case I Of
           0: SpotDTM := DTMFromString('m6wAAAHic42ZgYEgD4kAgjgTiFCBOBeJSIM4HYl8gzgHiaiAuAGJ7IPYG4mAg9gRiYyi2BGIzKNsKiPWBuDjOkqEi2YahPdeFoTXbGUynh5owuJhJMzRlOjG05jgz1KbaM/jYyDHwAtUTixlJwEgAAAbREw8=');
           1: SpotDTM := DTMFromString('mrAAAAHic42BgYNBmZGCwBGIrIDYAYhkgVgNifSDmB2JXoBorIHYAYl8g9gPiACC2BWI7IE4PMWZwM5dm8LSSZWjNcWYoS7RmKIqzYGgDshszHRl4gWrwYUYCGAYAo0ELyA==');
@@ -758,7 +785,7 @@ Begin
       End;
       3:
       Begin
-        A:=Mainscreen.X1; B:=Mainscreen.Y1; C:=Mainscreen.X2; D:=292;
+        A:=Mainscreen.X1; B:=Mainscreen.Y1+20; C:=Mainscreen.X2; D:=292;
         Case I Of
           0: SpotDTM := DTMFromString('mwQAAAHic42RgYLjGyMBwCIgvA/EjIH4JxKJMDAyXgPRjIL4NxGFAddFA7A3EwUAcBcQhQBwHxKlA7A/ERbHWDNkR5gzVafYMLbkuDHWZTgyTK30YyhLtGGrSHRkqku0ZeIDqCGFGIjAcAABphRSg');
           1: SpotDTM := DTMFromString('mrAAAAHic42BgYPBiYWCwBGJPII4A4jYgTgHiMCCWAeLXDBB8H4ifAPELIP4JxH+B+BsQR7krMzRkODKUJ9ow1KbaMbTmODMUxlowVCbbMJQn2DDwANXgw4wEMAwAAC6VEwQ=');
@@ -1936,7 +1963,7 @@ Begin
       GetMousePos(X,Y);
       If PointInBox(Point(X,Y),IntToBox(162,118,328,303)) Then
       Begin
-        MouseOffClient(4);
+        MouseOffClient(4,True);
         AniTimer.Reset;
         AniTimer.Start;
       End Else
@@ -2011,7 +2038,8 @@ Begin
         End;
 
     If (TabBackpack.Count<26) And ((HPPercent > (75))) And (Method<>2) And (Method<>3) And (Method<>4) Then
-      AntiBan;
+      AntiBan Else
+      MouseOffClient(4,True);
   Until (TabBackpack.IsFull);
 
   If Debug Then
