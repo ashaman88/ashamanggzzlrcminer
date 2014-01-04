@@ -15,10 +15,6 @@ Var
 ///////////////////////////////////////////////////////////////////////
 
 Const
-
-  SRLStats_Username = '';         // ***Leave blank if you don't have a stats account***
-  SRLStats_Password = '';
-
   {For Alch or Superheat Methods}
   SFS = True;                     // ***Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work)***
   JIC = True;                     // ***If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false***
@@ -307,9 +303,6 @@ Begin
   Writeln('================================');
   If TakeBreaks Then
     Writeln('Time until break: '+MsToTime(TTB, Time_Bare));
-
-  StatsIncVariable('Gold Ore (Mined)', TabBackpack.CountDTM(GoldDTM));
-  StatsCommit;
 End;
 
 Function ToBank: Boolean; Forward;
@@ -2194,9 +2187,9 @@ Begin
   ClearDebug;
   RequirementsCheck;
   AutoUpdateMe;
+  SmartEnableDrawing := True;
 
   SetupSRL;
-  StatsSetup(944, SRLStats_Username, SRLStats_Password);
 
   If Not Debug Then
     DisableSRLDebug:=True;
