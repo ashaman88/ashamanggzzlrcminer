@@ -69,7 +69,7 @@ End;
 
 
 Const
-  ScriptVersion = '8.04';
+  ScriptVersion = '8.05';
   E = 200;
   F = 462;
   Debug = False;
@@ -127,33 +127,6 @@ Function FindNormalRandoms: Boolean;
 Begin
   Result:= ExitSquealOfFortune Or ClaimSpinTicket;
 End;
-
-procedure mouseOffClient(Direction: Integer; Stay: Boolean);  overload;
-var
-  B: TBoxArray;
-  P: TPoint;
-  i, W, H,X,Y: Integer;
-begin
-  GetClientDimensions(W, H);
-  GetMousePos(X,Y);
-  if (X < 0) or (X > W) or (Y < 0) or (Y > H) then
-     exit;
-
-  SetLength(B, 4);
-
-  B[OFF_CLIENT_TOP] := [-300, -300, W, 0]; // top
-  B[OFF_CLIENT_BOTTOM] := [0, H, W, H +300];  // bottom
-  B[OFF_CLIENT_LEFT] := [0-300, 0, 0, H];   // left
-  B[OFF_CLIENT_RIGHT] := [W, 0, W +300, H];  // right
-
-  if (Direction = OFF_CLIENT_RANDOM) then
-    i := Random(4)
-  else
-    i := Direction;
-
-  P := Point(RandomRange(B[i].X1, B[i].X2), RandomRange(B[i].Y1, B[i].Y2));
-  Mouse(Point(P.X, P.Y), MOUSE_MOVE);
-end;
 
 Procedure SetDTM;
 Begin
@@ -231,13 +204,7 @@ Begin
   If Not IsLoggedIn Then
     Exit;
 
-  CTS := GetToleranceSpeed;
-  SetColorToleranceSpeed(2);
-
-  SetToleranceSpeed2Modifiers(3.82,0.80);                                //Method
-  Result:= Round(CountColorTolerance(15724370,IntToBox(48,410,151,417),13)/314 * 100);
-  SetColorToleranceSpeed(CTS);
-  SetToleranceSpeed2Modifiers(0.2,0.2);
+  result:= actionBar.getHPPercent;
 End;
 
 Function SetRest: Boolean;
@@ -290,126 +257,27 @@ Begin
   Result:=Round((0.0005 * (count * count)) + (0.0549 * count) - 17.599);
 End;
 
-//by Home       //tbox.split(w, h)
-function AreaToBoxArray(const AreaX1, AreaY1, AreaX2, AreaY2, Width, Height: Integer): TBoxArray;
-var
-  AreaW, AreaH: Integer;
-  BoxX, BoxY: Integer;
-  x, y, i: Integer;
-begin
-  FUNCTIONSTOP:='AREATTOBOX ENTERED';
-
-  // Calculate the area dimensions
-  AreaW := AreaX2 - AreaX1 + 1;
-  AreaH := AreaY2 - AreaY1 + 1;
-
-  // Calculate the number of boxes in each dimension
-  BoxX := AreaW div Width;
-  if AreaW mod Width <> 0 then Inc(BoxX);
-  BoxY := AreaH div Height;
-  if AreaH mod Height <> 0 then Inc(BoxY);
-
-  // Set the number of boxes
-  SetLength(Result, BoxX * BoxY);
-
-  // Calculate the boxes
-  i := 0;
-  for y := 0 to BoxY - 1 do
-    for x := 0 to BoxX - 1 do
-    begin
-      Result[i] := IntToBox(AreaX1 + x * Width,
-        AreaY1 + y * Height,
-        Min(AreaX2, AreaX1 + (x + 1) * Width - 1),
-        Min(AreaY2, AreaY1 + (y + 1) * Height - 1));
-      Inc(i);
-    end;
-  FUNCTIONSTOP:='AREABOX EXIT';
-end;
-
-Procedure CheckMovingObjs(RClick: Boolean);
-var
-  TBA: TBoxArray;
-  MidBox: TPoint;
-  TIA: TIntegerArray;
-  H,I,J,X,Y,T: Integer;
-  TPA,PBox: TPointArray;
-begin
-  FUNCTIONSTOP:='CHECKMOVINGOBJS ENTERED';
-
-  if not IsLoggedIn then Exit;
-
-  SetColorToleranceSpeed(1);
-  SetToleranceSpeed2Modifiers(0.2, 0.2);
-
-  PBox := TPAFromBox(MainScreen.PlayerBox);
-  TBA := AreaToBoxArray(Mainscreen.X1, Mainscreen.Y1, Mainscreen.X2, Mainscreen.Y2, 35, 35);
-  TIA := GetPixelShift(TBA, 300);
-
-  for H := 0 to High(TBA) do
-  begin
-    if (TIA[H] > 100) then
-    begin
-      MidBox := MiddleBox(TBA[H]);
-      SetArrayLength(TPA, Length(TPA)+1);
-      TPA[High(TPA)] := MidBox;
-    end;
-  end;
-
-  ClearTPAFromTPAWrap(TPA, PBox, TPA);
-  if (Length(TPA) < 1) then Exit;
-
-  I := Random(Length(TPA));
-  Mouse(Point(TPA[I].X+GaussRangeInt(-10,10), TPA[I].Y+GaussRangeInt(-10,10)),Mouse_Move,Mouse_Human);
-
-  if RClick then
-  begin
-    FastClick(Mouse_Right);
-    if (chooseOption.isOpen(500)) then
-      J := Length(ChooseOption.__getOptions());
-    Wait(GaussRangeInt(J*75, J*120));
-
-    ChooseOption.Close
-  end;
-  SetArrayLength(TPA,0);
-
-  FUNCTIONSTOP:='CHECKMOVEOBJ EXIT';
-end;
-
 Function Antiban: Boolean;
 Var
   I: Integer;
 Begin
   I := Random(600);
   Case I Of
-    1..3:
+    1: boredHuman(false);
+    2..7:
       Begin
-        Wait(GaussRangeInt(0, 5000));
-      End;
-    4..25:
-      Begin
-        TabStats.GetSkillLevel(Skill_Herblore,SKILL_DYNAMIC);
+        hoverSkill(Skill_Mining);
         Wait(GaussRangeInt(1000,2000));
-        TabBackpack.Open;
       End;
-    80..150:
+    8..50: mouseMovingObject;
+    51..100: SleepAndMoveMouse(RandomRange(100,6000));
+    101..400:
       Begin
-        CheckMovingObjs(False);
+        MouseOffClient(Random(4));
+        Wait(RandomRange(2000, 15000));
       End;
-    151..180:
-      Begin
-        CheckMovingObjs(True);
-      End;
-    181..200:
-      Begin
-        SleepAndMoveMouse(GaussRangeInt(400,500));
-        Result:=True;
-      End;
-    201..600:
-      Begin
-        MouseOffClient(4,True);
-        Wait(RandomRange(3000, 15000));
-        Result:=True;
-      End;
+    501..600: Wait(RandomRange(1000, 2000));
+
   End;
   If (TabBackpack.Count<25) And ((HPPercent > (75))) Then
     Wait(GaussRangeInt(3000,4000));
@@ -744,14 +612,7 @@ Var
 Begin
   If Not IsLoggedIn Then
     Exit;                        //1400
-
-  CTS := GetToleranceSpeed;
-  SetColorToleranceSpeed(2);                      //100      75       50        25         0
-                                                  //429     383      302       263       149
-  SetToleranceSpeed2Modifiers(0.07,0.20);
-  Result:= CountColorTolerance(4088954,IntToBox(210,210,274,256),8);
-  SetColorToleranceSpeed(CTS);
-  SetToleranceSpeed2Modifiers(0.2,0.2);
+  Result:= CountColorTolerance(4088954,IntToBox(210,210,274,256),8,colorSetting(2,0.07,0.20));
 End;
 
 Function GoldDTMs: Boolean;
@@ -777,7 +638,7 @@ Begin
       End;
       2:
       Begin
-        A:=105;  B:=44;   C:=400;  D:=325;
+        A:=105;  B:=44;   C:=400;  D:=320;
         Case I Of
           0: SpotDTM := DTMFromString('m6wAAAHic42ZgYEgD4kAgjgTiFCBOBeJSIM4HYl8gzgHiaiAuAGJ7IPYG4mAg9gRiYyi2BGIzKNsKiPWBuDjOkqEi2YahPdeFoTXbGUynh5owuJhJMzRlOjG05jgz1KbaM/jYyDHwAtUTixlJwEgAAAbREw8=');
           1: SpotDTM := DTMFromString('mrAAAAHic42BgYNBmZGCwBGIrIDYAYhkgVgNifSDmB2JXoBorIHYAYl8g9gPiACC2BWI7IE4PMWZwM5dm8LSSZWjNcWYoS7RmKIqzYGgDshszHRl4gWrwYUYCGAYAo0ELyA==');
@@ -818,17 +679,14 @@ Begin
     Exit;
 
   If TabBackpack.IsFull Then
-  Begin                                                          //Method
-    Result := True;
-    Exit;
-  End;
+    Exit(True);
 
   If Debug Then
     Writeln('Searching Spot: ' +tostr(Spot));
 
   If WaitFunc(@GoldDTMs,1,RandomRange(2500,4000)) Then
   Begin
-    Mouse(Point(GoldX+GaussRangeInt(-5,5),GoldY+GaussRangeInt(-5,5)),Mouse_Move,Mouse_Accurate);
+    Mouse(Point(GoldX+GaussRangeInt(-5,5),GoldY+GaussRangeInt(-5,5)));
     If (IsMouseOverText(['posit','neral','depo'],RandomRange(1000,1200))) Then
     Begin
       If Debug Then
@@ -880,8 +738,7 @@ Begin
 
 
                                                                  //Method
-    Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Move,Mouse_Human);
-    FastClick(Mouse_Left);
+    Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Left);
 
     If (TabBackpack.CountDTM(GoldDTM) = 1) Then
     Begin
@@ -896,8 +753,7 @@ Begin
       If Debug Then
         Writeln('Found coal in inventory, clicking');
                                                                  //Method
-      Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Move,Mouse_Human);
-      FastClick(Mouse_Left);
+      Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Left);
 
       If (TabBackpack.CountDTM(CoalDTM) = 1) Then
       Begin
@@ -912,8 +768,7 @@ Begin
         If Debug Then
           Writeln('Found bar in inventory, clicking');
                                                                    //Method
-        Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Move,Mouse_Human);
-        FastClick(Mouse_Left);
+        Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Left);
 
         If (TabBackpack.CountDTM(BarDTM) = 1) Then
         Begin
@@ -930,19 +785,18 @@ Begin
   Begin
     If Debug Then
       Writeln('Closing options menu');
-    MouseBox(TabBackpack.GetBounds,Mouse_Move);
+    MouseBox(TabBackpack.GetBounds);
   End;
 
-  CTS := GetToleranceSpeed;
-  SetColorToleranceSpeed(2);
+  findColorsTolerance(tpa, 6392224, MainScreen.GetBounds, 5,colorSetting(2,0.05,0.46));    //outercolor
 
-  SetToleranceSpeed2Modifiers(0.05,0.46);
-  FindColorsSpiralTolerance(MainScreen.PlayerPoint.X,MainScreen.PlayerPoint.Y,TPA,6392224,MainScreen.GetBounds.X1,MainScreen.GetBounds.Y1,MainScreen.GetBounds.X2,MainScreen.GetBounds.Y2,5);
-  SetColorToleranceSpeed(CTS);
-  SetToleranceSpeed2Modifiers(0.2,0.2);
+  ATPA := TPA.Cluster(15,25);
 
-  ATPA := TPAtoATPAEx(TPA,15,25);
-  SortATPAFromFirstPointY(ATPA,Point(330,200));
+  SetLength(TPA,0);
+
+  atpa.filterBetween(0, 10);
+  atpa.filterBetween(150, 10000);
+  ATPA.sortFromFirstPoint(Point(330,200));
 
   If (Length(ATPA) = 0) Then
   Begin
@@ -962,34 +816,30 @@ Begin
 
   For I:= 0 To H Do
   Begin
-    If (Length(ATPA[I]) < 10) Or (Length(ATPA[I]) > 150)  Then
-      Continue;
-
     If Debug Then
       Writeln('Small Chest Length: '+ToStr(Length(atpa[i]))+' for I:= '+ToStr(I));
 
     ChestBox := GetTPABounds(ATPA[I]);
+    ChestBox.Edit(-40,-5,+10,+20);
+    ChestBox.SetLimit(Mainscreen.GetBounds);
 
     With ChestBox Do
     Begin
       If Not IsLoggedIn Then
         Exit;
 
-      SetColorToleranceSpeed(2);
-      SetToleranceSpeed2Modifiers(0.11,0.20);
-      FindColorsSpiralTolerance(MainScreen.PlayerPoint.X,MainScreen.PlayerPoint.Y,TPA2,8950425,Max(ChestBox.X1-40,0),Max(ChestBox.Y1-5,0),Min(ChestBox.X2+10,Mainscreen.X2),Min(ChestBox.Y2+20,Mainscreen.Y2),18);
-      SetColorToleranceSpeed(CTS);
-      SetToleranceSpeed2Modifiers(0.2,0.2);
+      findColorsTolerance(tpa, 8950425, ChestBox, 18,colorSetting(2,0.11,0.20));    //innercolor
 
       If Debug Then
         Writeln('Silver Chest Length: '+ToStr(Length(TPA2))+' for I:= '+ToStr(I));
 
-      If Length(TPA2) > 5 Then
+      If Length(TPA) > 5 Then
       Begin
         SetArrayLength(TBA, Length(TBA)+1);
-        ChestBox := IntToBox(Max(ChestBox.X1,0),Max(ChestBox.Y1,0),Min(ChestBox.X2,Mainscreen.X2),Min(ChestBox.Y2,Mainscreen.Y2));
         TBA[High(TBA)] := ChestBox;
       End;
+
+      SetLength(TPA,0);
     End;
   End;
 
@@ -1001,9 +851,7 @@ Begin
     Writeln('Failed Drawing Boxes.');
   End;
 
-  SetLength(TPA,0);
   SetLength(ATPA,0);
-  SetLength(TPA2,0);
 
   For H := 0 To High(TBA) Do
   Begin
@@ -1013,12 +861,10 @@ Begin
     Begin
       If Debug Then
         Writeln('Closing options menu');
-      MouseBox(TabBackpack.GetBounds,Mouse_Move);
+      MouseBox(TabBackpack.GetBounds);
     End;
 
-    MBP := MiddleBox(TBA[H]);
-
-    Mouse(Point(MBP.X+GaussRangeInt(-5,6),MBP.Y+GaussRangeInt(-10,10)),Mouse_Move,Mouse_Human);
+    MouseBox(TBA[H]);
 
     If (IsMouseOverText(['^ Pu','^ Pull','-^ Pu','-> Pu'],300)) Then
     Begin
@@ -1029,13 +875,11 @@ Begin
         If DidClick(True) Then
         Begin                                                        //Method
           Result:=True;
-          SetArrayLength(ATPA,0);
-          SetLength(TPA,0);
+          SetArrayLength(TBA,0);
           Exit;
         End Else
         Begin
-          SetArrayLength(ATPA,0);
-          SetLength(TPA,0);
+          SetArrayLength(TBA,0);
           Exit;
         End;
       End Else
@@ -1047,23 +891,20 @@ Begin
           If Debug Then
             Writeln('Found option to use box');
           Result := True;
-          SetArrayLength(ATPA,0);
-          SetLength(TPA,0);
+          SetArrayLength(TBA,0);
           Exit;
         End Else
         Begin                                                        //Method
           If Debug Then
             Writeln('DIDNT FIND OPTION TO DEPOSIT');
           MouseBox(TabBackpack.GetBounds,Mouse_Left);
-          SetArrayLength(ATPA,0);
-          SetLength(TPA,0);
+          SetArrayLength(TBA,0);
           Exit;
         End;
       End;
     End;
   End;
-  SetLength(ATPA,0);
-  SetLength(TPA,0);
+  SetArrayLength(TBA,0);
   If Debug Then
     FunctionStop:= 'Bank: Finished';
 End;
@@ -1319,7 +1160,7 @@ Var
   Bounds: TBox;
 Begin
   Bounds:= TabBackpack.GetSlotBox(Slot);
-  Result:= FindDTM(DTM, X, Y, Bounds.X1, Bounds.Y1, Bounds.X2, Bounds.Y2);
+  Result:= FindDTM(DTM, X, Y, Bounds);
 End;
 
 Procedure DropLRCBackup;
@@ -1963,7 +1804,7 @@ Begin
       GetMousePos(X,Y);
       If PointInBox(Point(X,Y),IntToBox(162,118,328,303)) Then
       Begin
-        MouseOffClient(4,True);
+        MouseOffClient(4);
         AniTimer.Reset;
         AniTimer.Start;
       End Else
@@ -2039,7 +1880,7 @@ Begin
 
     If (TabBackpack.Count<26) And ((HPPercent > (75))) And (Method<>2) And (Method<>3) And (Method<>4) Then
       AntiBan Else
-      MouseOffClient(4,True);
+      MouseOffClient(4);
   Until (TabBackpack.IsFull);
 
   If Debug Then
@@ -2369,7 +2210,7 @@ Begin
   Minimap.ClickCompass;
   MainScreen.SetAngle(MS_ANGLE_HIGH);
   Players[CurrentPlayer].FindMod := False;
-  //ToggleXPBar(True);
+
   //StartingExperience:=GetXPBarTotal;
   If FindNormalRandoms Then
     Wait(RandomRange(2000,3000));
@@ -2382,7 +2223,7 @@ Begin
   {If UsingFamiliar Then
     SummoningTimer:=(GetSystemTime-((NewPouch-GetNPCTimer)*60*1000)) Else
     NoFamiliar:=True; }
-  //HP:=GetMaxHP;
+
   OldHP:=HPPercent;
   Spot:=1;
   Timeout.Reset;
