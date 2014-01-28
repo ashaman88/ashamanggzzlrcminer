@@ -1,12 +1,67 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+//          READ THE DIRECTIONS IN THE OP FIRST OR ELSE              //
+//           Make sure you have setup your player file               //
+//                  Under SRL>PlayerManager                          //
+//                       Press Play                                  //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                       //
+//           Don't touch below this line unless you know what you're doing!!             //
+//                                                                                       //
+///////////////////////////////////////////////////////////////////////////////////////////
 Program AshamanggzzLRC;
   {$IFDEF RAYMONDPOWNS}{wrappers} function FloodFillTPAWrap(const TPA: TPointArray): T2DPointArray; var tempATPA: T2DPointArray; begin tempATPA:= FloodFillTPA(TPA); Result:= tempATPA; SetLength(tempATPA, 0); end; function FindTPAEdges(const p: TPointArray): TPointArray; begin FindTPAEdgesWrap(p, result); end; Function RotatePoints(Const P: TPointArray; A, cx, cy: Extended): TPointArray; begin RotatePointsWrap(P, A, cx, cy, result); end; function TPAFromCircle(const CX, CY, Radius: Integer): TPointArray; begin TPAFromCircleWrap(CX, CY, Radius, result); end; function TPAFromEllipse(const CX, CY, XRadius, YRadius : Integer): TPointArray; begin TPAFromEllipseWrap(CX, CY, XRadius, YRadius, result); end; function TPAFromBox(const Box : TBox) : TPointArray; begin TPAFromBoxWrap(Box, result); end; Function ReturnPointsNotInTPA(Const TotalTPA: TPointArray; const Box: TBox): TPointArray; begin ReturnPointsNotInTPAWrap(TotalTPA, Box, result); end; function CombineIntArray(const Ar1, Ar2: TIntegerArray): TIntegerArray; begin CombineIntArrayWrap(Ar1, Ar2, result); end; function ReArrangeandShortenArray(const a: TPointArray; Dist: Integer): TPointArray; begin ReArrangeandShortenArrayWrap(a, Dist, result); end; function ReArrangeandShortenArrayEx(const a: TPointArray; w, h: Integer): TPointArray; begin ReArrangeandShortenArrayExWrap(a, w, h, result); end; function CombineTPA(const Ar1, Ar2: TPointArray): TPointArray; begin CombineTPAWrap(Ar1, Ar2, Result); end; function RemoveDistTPointArray(x, y, dist: Integer;const ThePoints: TPointArray; RemoveHigher: Boolean): TPointArray; begin RemoveDistTPointArrayWrap(x, y, dist, ThePoints, RemoveHigher, Result); end; function TPAFromText(const text, font: String; var w,h: Integer): TPointArray; begin TPAFromTextWrap(text, font, w, h, result); end; function GetColors(const Coords: TPointArray): TIntegerArray; begin GetColorsWrap(Coords, Result); end; function Explode(del, str: string): TStringArray; begin ExplodeWrap(del, str, Result); end; function MergeATPA(const ATPA : T2DPointArray): TPointArray; begin MergeATPAWrap(ATPA, Result); end; function SplitTPA(arr : TPointArray; dist : Integer) : T2DPointArray; begin SplitTPAWrap(arr, dist, result); end; function SplitTPAEx(arr : TPointArray; w, h : integer) : T2DPointArray; begin SplitTPAExWrap(Arr, w, h, result); end; function ClearTPAFromTPA(arP, ClearPoints : TPointArray) : TPointArray; begin ClearTPAFromTPAWrap(arP, ClearPoints, result); end; function TPAToATPAEx(arP : TPointArray; w, h : integer) : T2DPointArray; begin TPAtoATPAExWrap(arP, w, h, result); end; function TPAToATPA(arP : TPointArray; dist : Integer) : T2DPointArray; begin TPAtoATPAWrap(arP, dist, result); end; function FindGapsTPA(TPA : TPointArray; MinPixels : integer) : T2DPointArray; begin FindGapsTPAWrap(tpa, MinPixels, result); end; {$ENDIF}
   {$Define SMART}
   {$I SRL-6/SRL.Simba}
+  {$i srl-6/lib/misc/srlplayerform.simba}
   {$I SPS/lib/SPS-RS3.Simba}
 
 Var
   PTS: Integer;
-  Method: Integer;
+  Method,BreakIn,BreakFor: Integer;
+  SFS,JIC,TakeBreaks,ActionBars: Boolean;
+  SuperHeatKey,Alch,GoldOre,GoldBar,CoalOre: String;
 ///////////////////////////////////////////////////////////////////////
 //                                                                   //
 //                  Begin of user setup                              //
@@ -14,46 +69,80 @@ Var
 //                                                                   //
 ///////////////////////////////////////////////////////////////////////
 
+
 Const
-  {For Alch or Superheat Methods}
-  SFS = True;                     // ***Set To True If SuperHeating Or Alching And Using FireStaff (Any fire rune substitute staff will work)***
-  JIC = True;                     // ***If True, when superheating or alching, if out of runes, it will bank ores/bars.. else drop them if false***
-  Superheats = '4';               // ***Which key do you have the superheat spell bound to?***
-  Alch = '5';                     // ***Which key do you have the low alch spell bound to?***
-
-  {Drop Settings}
-  GoldOre = '1';                  // ***Which key do you have gold ores bound to?***
-  GoldBar = '2';                  // ***Which key do you have gold bars bound to?***
-  CoalOre = '3';                  // ***Which key do you have coal ore bound to?***
-
-  {Overall Methods}
-  ActionBars = True;               // ***Do you want to use the action bar to drop?***
   DMP = True;                     // ***If the SPS Maps aren't found, Download them and save them automatically, you should leave this as true***
   Timeouts = True;                // ***Do you want script to shutdown if nothing has happened for several minutes?***
-
-  {Break Settings}
-  TakeBreaks   = False;            // ***Do you want to take breaks?***
-  BreakIn      = 600;             // ***How long before we take a break? (minutes)***
-  BreakFor     = 15;              // ***How long will we break for? (minutes)***
   Bir          = 13;              // ***Random minutes to add/subtract from how long until we break***
   Bfr          = 7;               // ***Random minutes to add/subjtract from break duraction***
+  ScriptVersion = '8.06';
+  E = 200;
+  F = 462;
+  Debug = False;
+  POSDebug = False;
+  AnimationDebug = False;
 
-Procedure DeclarePlayers;
-Begin
-  Players.Setup(['Player1'], 'PlayerList'); //***Fill this out, Player1 = Name of the account in player manager, PlayerList = name of the player file***
-  SetLength(Players,1);
+procedure declarePlayers();
+var
+  i,j: integer;
+begin
+  players.setup(playerForm.playerNames, playerForm.playerFile); // load the SPF players from the SRL Player Manager
+  currentPlayer := 0;                                           // player to use first
 
-  //***If NOT using the player manager, fill out the loginname and password below, otherwise ignore those two***
-  With players[0] Do
-  Begin
-  // loginName := '';      {Remove the "//" from this line if you arent using player manager}
-  // password := '';       {Remove the "//" from this line if you arent using player manager}
-    IsActive := True;
-    World := 84;
-    Method:= 0;           //0 for banking, 1 for dropping, 2 for alching, 3 for superheat and bank, 4 for superheat and drop
-  End;
-  CurrentPlayer := 0;
-End;
+  // set player attributes based on the settings from the form
+  for i := 0 to high(players) do
+    with players[i] do
+    begin
+      SuperHeatKey := playerForm.players[i].settings[0];
+      Alch := playerForm.players[i].settings[1];
+      GoldOre  := playerForm.players[i].settings[2];
+      GoldBar  := playerForm.players[i].settings[3];
+      CoalOre  := playerForm.players[i].settings[4];
+      BreakIn := strToInt(playerForm.players[i].settings[5]);  //minutes until break
+      BreakFor := strToInt(playerForm.players[i].settings[6]);  //minutes to break
+
+
+      TakeBreaks := strToBool(playerForm.players[i].settings[7]);
+      ActionBars := strToBool(playerForm.players[i].settings[8]);
+      SFS := strToBool(playerForm.players[i].settings[9]);
+      JIC := strToBool(playerForm.players[i].settings[10]);
+      FindMod := strToBool(playerForm.players[i].settings[11]);
+
+
+
+      for j := 0 to high(playerForm.comboBoxItems[0]) do
+        if (playerForm.players[i].settings[12] = playerForm.comboBoxItems[0][j]) then
+          Method := j;
+
+      World :=  84;                    //world
+
+      strings[0] := playerForm.players[i].settings[13]; //graphics
+    end;
+end;
+
+// initiates the SRL player form (you aren't restricted to the procedure name; it can be whatever you want)
+procedure initPlayerForm();
+begin
+  with playerForm do
+  begin
+    name := 'AshamanLRC v'+toStr(ScriptVersion); // the title of the SPF, usually the name of your script
+    scriptHelpThread := '';           // a link to a help thread, if set to '' will link to my setup guide
+    scriptSettingsPath := '';         // where you want the settings file to be saved; saved in script's path by default
+
+    editBoxLabels := ['SuperheatKey', 'AlchKey', 'GoldOreKey', 'GoldBarKey', 'CoalOreKey', 'Minutes until Break', '# of Minutes to Break']; // edit boxes are created for each array element
+    editBoxDefaults := [ '0', '1', '2', '3', '4', '600', '15'];                                             // optional default values for each edit box; array length must equal editBoxLabel length
+    checkBoxLabels := ['Take Breaks', 'Use ActionBar', 'MagicStaff', 'RuneFailsafe', 'Logout if Mod is near'];        // same as editBoxLabels but for check boxes
+    checkBoxDefaults := ['True','True','True','True','False'];
+
+    comboBoxLabels := ['Method', 'GraphicsMode'];                                                // same as editBoxLabels but for combo boxes (drop down boxes)
+    comboBoxDefaults := ['Bank','OpenGL'];
+
+    // this needs to be done for every element in the comboBoxLabels array
+    setLength(comboBoxItems, length(comboBoxLabels));
+    comboBoxItems[0] := ['Bank', 'Drop', 'Alch','SuperheatBank', 'SuperheatDrop'];       // all the options available for the first combo box
+    comboBoxItems[1] := ['OpenGL', 'DirectX'];
+  end;
+end;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -64,21 +153,14 @@ End;
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-Const
-  ScriptVersion = '8.05';
-  E = 200;
-  F = 462;
-  Debug = False;
-  POSDebug = False;
-  AnimationDebug = False;
+
 
 Var
  Spot,SpotDTM,A,B,C,D,GoldX,GoldY,SummoningTimer,M,NewPouch: Integer;
- StartTime,CurrentTime: Int64;
  W,X,Y,Z,RealBTime,BreakRounds,TotalBreaks: Integer;
- OreCount,XP,OneOre,BarDTM,Staff,EmptySpot,StartingExperience,GoldDTM,CoalDTM: Integer;
+ OreCount,XP,OneOre,BarDTM,Staff,EmptySpot,GoldDTM,CoalDTM: Integer;
  CurrentBTime,Timeout,Timeout2,CoalTimer: TTimeMarker;
- XPH,OresPH,HP,OldHP: Extended;
+ StartingExperience, XPH,OresPH,HP,OldHP: Extended;
  HeatAlch,SafeBank,NoFamiliar: Boolean;
  Off,FunctionStop: String;
 
@@ -193,7 +275,7 @@ Begin
   FUNCTIONSTOP:='BREAK EXIT';
 End;
 
-Function HPPercent: Integer;                                        //Method
+Function HPPercent: Integer;
 Var
   CTS: Integer;
 Begin
@@ -279,6 +361,41 @@ Begin
     Wait(GaussRangeInt(3000,4000));
 End;
 
+function TRSChatBox.getXP: Integer;
+var
+  b: TBox;
+  s: String;
+  tpa : TPointArray;
+  atpa : T2DPointArray;
+  i,cts,p: Integer;
+begin
+  b := self.getBounds();
+  b.edit(+(b.x2-b.x1)-140, +10, -5, -94);
+
+  findColorsTolerance(tpa, 14013909, b, 4,colorSetting(2, 0.00, 0.00));
+
+  if length(tpa) < 2 then
+  begin
+    print('chatBox.getXP(): No XP found', TDebug.SUB);
+    Exit;
+  end;
+
+  atpa := tpa.cluster(5);
+
+  b:= atpa.getbounds;
+  b.edit(-2,-2,+2,+3);
+
+  s:=Replace(tesseractgettext(b.x1,b.y1,b.x2,b.y2, FILTER_SMALL_CHARS), ' ', '', [rfReplaceAll]);
+
+  P := Pos('x', S);
+  if P > 0 then
+    Result := StrToIntDef(ExtractFromStr(Copy(s, P, Length(S)), Numbers), 0)
+  else
+    Result := StrToIntDef(ExtractFromStr(S, Numbers), 0);
+
+  print('chatBox.getXP(): XP found: ' + tostr(result), TDebug.SUB);
+end;
+
 Procedure ProgressReport;
 Var
   TTB: Integer;
@@ -289,18 +406,19 @@ Begin
   TTB := (((W) + (Y) + BreakRounds)-GetTimeRunning);
 
   OreCount := OreCount + TabBackpack.CountDTM(GoldDTM)+TabBackpack.CountDTM(CoalDTM);
-  XP := (OreCount * 65);
+  XP := (ChatBox.GetXP - Round(StartingExperience));
   XPH := Round(XP * (3600.0 / (GetTimeRunning / 1000.0)));
   OresPH := Round((OreCount * (3600.0 / (GetTimeRunning / 1000.0))));
 
-  Writeln('========Ashaman&ggzzLRC=========');
-  Writeln('==========Version: '+ScriptVersion+'==========');
-  Writeln('Time Running: ' + ToStr(TimeRunning));
-  Writeln('Ores Mined: ' + IntToStr(OreCount));                       //Method
-  Writeln('Experience Earned: ' + IntToStr(XP));
-  Writeln('Experience/Hour: ' + ToStr(XPH));
-  Writeln('Ores/H: ' + ToStr(OresPH));
-  Writeln('================================');
+  writeln('|=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=|');
+  writeln('|                     AshamanLRC v'+PadR(toStr(ScriptVersion), 26), '|');
+  writeln('|=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=|');
+  writeln(PadR('| Running For: '+TimeRunning, 60)+'|');
+  writeln(PadR('| Ore''s Burned: ' + GroupDigits(OreCount,','), 40) + padR('Ores/H: ' + GroupDigits(OresPH,','), 20) + '|');
+  writeln(PadR('| Exp Earned: ' + GroupDigits(XP,','), 40) + padR('Exp/Hour: ' + GroupDigits(XPH,','), 20) + '|');
+  writeln('|___________________________________________________________|');
+  writeln('|___________________________________________________________|');
+
   If TakeBreaks Then
     Writeln('Time until break: '+MsToTime(TTB, Time_Bare));
 End;
@@ -312,10 +430,14 @@ Begin
   Result:=False;
 
   If Not IsLoggedIn Then
-  Begin                                                 //Method
+  Begin
+    DisableSRLDebug:=False;
+    Wait(RandomRange(4000,6000));
     If Not Players[CurrentPlayer].Login Then
       TerminateScript;
     Wait(RandomRange(4000,6000));
+    If Not Debug Then
+      DisableSRLDebug:=True;
     Minimap.ClickCompass;
     MainScreen.SetAngle(MS_ANGLE_HIGH);
     FindNormalRandoms;
@@ -344,7 +466,7 @@ Begin
         Writeln('Loging back in');
 
       Players[CurrentPlayer].Login;
-      Wait(RandomRange(2000,3000));                                                                    //Method
+      Wait(RandomRange(2000,3000));
       Minimap.ClickCompass;
       MainScreen.SetAngle(MS_ANGLE_HIGH);
       FindNormalRandoms;
@@ -362,7 +484,7 @@ Begin
 
   If FindNormalRandoms Then
     If Not IsLoggedIn Then
-      TerminateScript Else                                         //Method
+      TerminateScript Else
       Begin
         Minimap.ClickCompass;
         MainScreen.SetAngle(MS_ANGLE_HIGH);
@@ -389,7 +511,7 @@ Begin
 End;
 
 Function LRCPaths(Which: Integer; Invert: Boolean): TPointArray;
-Var                                                                                  //Method
+Var
   BankToLowestGold,BankToHighGold,LowToHighGold,LowGoldToCoal: TPointArray;
   Paths: T2DPointArray;
 Begin
@@ -425,20 +547,6 @@ Begin
 
   If Debug Then
     FunctionStop:= 'LRCPATHS: Finished';
-End;
-
-Procedure MovingSafe;
-Var                                                                  //Method
-  T:TTimeMarker;
-Begin
-  T.Start;
-  Repeat
-    CheckStuff;
-    If Not Minimap.IsFlagPresent Then
-      Wait(RandomRange(600,800));
-    If Not Minimap.IsFlagPresent Then
-      Break;
-  Until ((Not(Minimap.IsPlayerMoving)) Or (T.GetTime > 12000));
 End;
 
 Function Runaways: Boolean;
@@ -484,7 +592,7 @@ Begin
     OldHP:=HPPercent;
     Writeln('HP LOW '+ToStr(HPPercent)+' RUNNING AWAY');
 
-    Writeln('HP Threshold '+ToStr((80)));              //Method
+    Writeln('HP Threshold '+ToStr((80)));
 
     If (Spot = 1) Or (Spot = 3) Then
     Begin
@@ -500,7 +608,6 @@ Begin
         Exit;
     End;
 
-    MovingSafe;
     T.Start;
     Repeat
       Wait(Random(1000));
@@ -553,7 +660,7 @@ Begin
     If (HPPercent > (69)) Then
     Begin
       Writeln('HP IS '+ToStr(HPPercent));
-      Writeln('HP > Wait Threshold of '+ToStr((69)));              //Method
+      Writeln('HP > Wait Threshold of '+ToStr((69)));
       Exit;
     End;
 
@@ -564,7 +671,7 @@ Begin
 
     Repeat
       Wait(RandomRange(20000,40000));
-      SmallRandomMouse;                                                 //Method
+      SmallRandomMouse;
       CheckStuff;
       Timeout.Reset;
       Timeout.Start;
@@ -582,7 +689,7 @@ Begin
 End;
 
 Procedure Moving;
-Var                                                                //Method
+Var
   T: TTimeMarker;
 Begin
   T.Start;
@@ -616,7 +723,7 @@ Begin
   Result:=False;
 
   T.Start;
-  For I:=0 To 1 Do                                                    //Method
+  For I:=0 To 1 Do
   Begin
     Case Spot Of
       1:
@@ -631,7 +738,7 @@ Begin
       End;
       2:
       Begin
-        A:=105;  B:=44;   C:=400;  D:=320;
+        A:=105;  B:=44;   C:=400;  D:=300;
         Case I Of
           0: SpotDTM := DTMFromString('m6wAAAHic42ZgYEgD4kAgjgTiFCBOBeJSIM4HYl8gzgHiaiAuAGJ7IPYG4mAg9gRiYyi2BGIzKNsKiPWBuDjOkqEi2YahPdeFoTXbGUynh5owuJhJMzRlOjG05jgz1KbaM/jYyDHwAtUTixlJwEgAAAbREw8=');
           1: SpotDTM := DTMFromString('mrAAAAHic42BgYNBmZGCwBGIrIDYAYhkgVgNifSDmB2JXoBorIHYAYl8g9gPiACC2BWI7IE4PMWZwM5dm8LSSZWjNcWYoS7RmKIqzYGgDshszHRl4gWrwYUYCGAYAo0ELyA==');
@@ -639,7 +746,7 @@ Begin
       End;
       3:
       Begin
-        A:=Mainscreen.X1; B:=Mainscreen.Y1+20; C:=Mainscreen.X2; D:=292;
+        A:=Mainscreen.X1; B:=Mainscreen.Y1+30; C:=Mainscreen.X2; D:=292;
         Case I Of
           0: SpotDTM := DTMFromString('mwQAAAHic42RgYLjGyMBwCIgvA/EjIH4JxKJMDAyXgPRjIL4NxGFAddFA7A3EwUAcBcQhQBwHxKlA7A/ERbHWDNkR5gzVafYMLbkuDHWZTgyTK30YyhLtGGrSHRkqku0ZeIDqCGFGIjAcAABphRSg');
           1: SpotDTM := DTMFromString('mrAAAAHic42BgYPBiYWCwBGJPII4A4jYgTgHiMCCWAeLXDBB8H4ifAPELIP4JxH+B+BsQR7krMzRkODKUJ9ow1KbaMbTmODMUxlowVCbbMJQn2DDwANXgw4wEMAwAAC6VEwQ=');
@@ -647,8 +754,9 @@ Begin
       End;
     End;
 
-    If FindDTM(SpotDTM,GoldX,GoldY,A,B,C,D) Then                  //Method
+    If FindDTM(SpotDTM,GoldX,GoldY,A,B,C,D) Then
     Begin
+      SmartImage.DebugDTM(SpotDTM,IntToBox(A,B,C,D),Clred);
       Result:=True;
       If Debug Then
         Writeln('Found Gold spot DTM for I='+ToStr(I));
@@ -674,10 +782,12 @@ Begin
   If TabBackpack.IsFull Then
     Exit(True);
 
+  minimap.setAngle(MM_DIRECTION_NORTH);
+
   If Debug Then
     Writeln('Searching Spot: ' +tostr(Spot));
 
-  If WaitFunc(@GoldDTMs,1,RandomRange(2500,4000)) Then
+  If WaitFunc(@GoldDTMs,1,RandomRange(2500,3000)) Then
   Begin
     Mouse(Point(GoldX+GaussRangeInt(-5,5),GoldY+GaussRangeInt(-5,5)));
     If (IsMouseOverText(['posit','neral','depo'],RandomRange(1000,1200))) Then
@@ -688,9 +798,11 @@ Begin
       Wait(RandomRange(500,600));
       Result:=True;
     End Else
-      takescreenshot('boom.bmp');
+      If Debug Then
+        takescreenshot('boom.bmp');
   End Else
-    TakeScreenshot('Fail.bmp');
+    If Debug Then
+      TakeScreenshot('Fail.bmp');
 End;
 
 
@@ -703,7 +815,7 @@ Var
   TPA,TPA2: TPointArray;
   ATPA: T2DPointArray;
   TBA: TBoxArray;
-  MBP: TPoint;                                            //Method
+  MBP: TPoint;
 Begin
   If Debug Then
     FunctionStop:= 'Bank: Entered';
@@ -730,7 +842,7 @@ Begin
       Writeln('Found Gold in inventory, clicking');
 
 
-                                                                 //Method
+
     Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Left);
 
     If (TabBackpack.CountDTM(GoldDTM) = 1) Then
@@ -745,7 +857,7 @@ Begin
     Begin
       If Debug Then
         Writeln('Found coal in inventory, clicking');
-                                                                 //Method
+
       Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Left);
 
       If (TabBackpack.CountDTM(CoalDTM) = 1) Then
@@ -760,7 +872,7 @@ Begin
       Begin
         If Debug Then
           Writeln('Found bar in inventory, clicking');
-                                                                   //Method
+
         Mouse(Point(X+GaussRangeInt(-5,5),Y+GaussRangeInt(-5,5)),Mouse_Left);
 
         If (TabBackpack.CountDTM(BarDTM) = 1) Then
@@ -772,7 +884,7 @@ Begin
       End Else
         Exit;
     End;
-  End;                                                            //Method
+  End;
 
   If (ChooseOption.OptionsExist(['Exam','mine','Examine','Canc','ncel','Cancel'],400)) Then
   Begin
@@ -787,8 +899,8 @@ Begin
 
   SetLength(TPA,0);
 
-  atpa.filterBetween(0, 10);
-  atpa.filterBetween(150, 10000);
+  atpa.filterBetween(0, 50);
+  atpa.filterBetween(400, 100000);
   ATPA.sortFromFirstPoint(Point(330,200));
 
   If (Length(ATPA) = 0) Then
@@ -836,7 +948,6 @@ Begin
     End;
   End;
 
-  If Debug Then
   Try
     SmartImage.Clear;
     SmartImage.DrawBoxes(TBA, False, clRed);
@@ -866,7 +977,7 @@ Begin
       If Not SafeBank Then
       Begin
         If DidClick(True) Then
-        Begin                                                        //Method
+        Begin
           Result:=True;
           SetArrayLength(TBA,0);
           Exit;
@@ -887,7 +998,7 @@ Begin
           SetArrayLength(TBA,0);
           Exit;
         End Else
-        Begin                                                        //Method
+        Begin
           If Debug Then
             Writeln('DIDNT FIND OPTION TO DEPOSIT');
           MouseBox(TabBackpack.GetBounds,Mouse_Left);
@@ -910,7 +1021,7 @@ Var
 Begin
   If Debug Then
     FunctionStop:= 'ToBank: Entered';
-                                                                   //Method
+
   Result:=False;
 
   If AtBank Then
@@ -945,7 +1056,7 @@ Begin
     Timeout.Start;
     Timeout2.Reset;
     Timeout2.Start;
-    Result := True;                                                //Method
+    Result := True;
     If Debug Then
       Writeln('Found bank symbol');
   End Else
@@ -964,13 +1075,15 @@ Var
 Begin
   If Debug Then
     FunctionStop:= 'Banking: Entered';
-                                                                         //Method
+
   SafeBank:=False;
 
   CheckStuff;
 
   If Not IsLoggedIn Then
     Exit;
+
+  SmartImage.Clear;
 
 
   If Not ToBank Then
@@ -984,7 +1097,7 @@ Begin
 
     Players[CurrentPlayer].Login;
     Wait(RandomRange(2500,3500));
-    CheckStuff;                                                                    //Method
+    CheckStuff;
     Minimap.ClickCompass;
     MainScreen.SetAngle(MS_ANGLE_HIGH);
     ToBank;
@@ -1003,8 +1116,10 @@ Begin
 
     If WaitFunc(@Bank,100,4000) Then
     Begin
-      If Debug Then                                                                  //Method
+      If Debug Then
         Writeln('Clicking back success');
+
+      SmartImage.Clear;
 
       T.Start;
       Repeat
@@ -1017,7 +1132,7 @@ Begin
             Writeln('Chat text timeout, trying to bank again');
           SafeBank:=True;
           Bank;
-          Wait(RandomRange(4000,6000));                                                       //Method
+          Wait(RandomRange(4000,6000));
         End;
 
         If OneOre=1 Then
@@ -1040,7 +1155,7 @@ Begin
         If Debug Then
           Writeln('Depositing '+ToStr(TabBackpack.CountDTM(GoldDTM))+' Gold');
 
-        If (TabBackpack.CountDTM(GoldDTM) < 6) And (TabBackpack.CountDTM(GoldDTM) > 2) Then           //Method
+        If (TabBackpack.CountDTM(GoldDTM) < 6) And (TabBackpack.CountDTM(GoldDTM) > 2) Then
           TypeSend('3',False) Else
         If (TabBackpack.CountDTM(GoldDTM) < 3) And (TabBackpack.CountDTM(GoldDTM) > 0) Then
           TypeSend('2',False) Else
@@ -1052,7 +1167,7 @@ Begin
           If Debug Then
             Writeln('No gold found, depositing '+ToStr(TabBackpack.CountDTM(CoalDTM))+' coal');
 
-          If (TabBackpack.CountDTM(CoalDTM) > 0) Then                                                    //Method
+          If (TabBackpack.CountDTM(CoalDTM) > 0) Then
             Coal:=True;
 
           If (TabBackpack.CountDTM(CoalDTM) < 6) And (TabBackpack.CountDTM(CoalDTM) > 2) Then
@@ -1068,7 +1183,7 @@ Begin
           If Debug Then
             Writeln('Depositing '+ToStr(TabBackpack.CountDTM(BarDTM))+' Gold Bars');
 
-          If (TabBackpack.CountDTM(BarDTM) < 6) And (TabBackpack.CountDTM(BarDTM) > 2) Then           //Method
+          If (TabBackpack.CountDTM(BarDTM) < 6) And (TabBackpack.CountDTM(BarDTM) > 2) Then
             TypeSend('3',False) Else
           If (TabBackpack.CountDTM(BarDTM) < 3) And (TabBackpack.CountDTM(BarDTM) > 0) Then
             TypeSend('2',False) Else
@@ -1076,7 +1191,7 @@ Begin
             TypeSend('4',False);
         End;
       End;
-                                                                                                      //Method
+
       TabBackpack.WaitForShift(4000);
 
       Coal:=False;
@@ -1088,7 +1203,7 @@ Begin
       GoldDTM:= DTMFromString('mWAAAAHicY2FgYJjBxMDQB8SzgHgxEAcyMjAEAbEHEHsD8eZ+KYZEPzOGTb2SDJkh1gz8QD3ImBENgwAA4fkIew==');  //goldore
     End Else
       SafeBank:=True;
-                                                                                                //Method
+
     If Debug Then
       Writeln('One ore variable back to 0');
     OneOre:=0;
@@ -1102,7 +1217,7 @@ Var
   L,LL: Integer;
 begin
   L:= High(TPA);
-  LL:= L;                                                 //Method
+  LL:= L;
   While (L > 1) do
   begin
     TSwap(TPA[Random(LL)], TPA[Random(LL)]);
@@ -1110,36 +1225,26 @@ begin
   end;
 end;
 
-Procedure DownloadImage(ImageName: String; Location: String);
-var
-  Image, Path: string;                                      //Method
-  FP: Integer;
-begin
-  Image:= GetPage(Location);
-  Path:= IncludePath + 'SPS\img\runescape_surface\' + ImageName + '.png';
-  Path:= Trim(Path);
-  FP:= CreateFile(Path);
-  WriteFileString(FP, Image);
-  CloseFile(FP);                                             //Method
-end;
-
 Function GrabMaps: Boolean;
 var
-  LRCMap: String;    //Map Locations
-  LRCName: String;      //Map Names
+  Map: String;    //Map Locations
+  Name: String;      //Map Names
+  SPSFile: LongInt;
 begin
-  LRCName:= '0_0LRC';                                      //Method
-  LRCMap:= 'http://i.imgur.com/gcG83.png';
-  if DMP then
+  Name:= IncludePath + '0_0LRC';
+  Map:= 'http://imageshack.com/a/img822/9172/t4yu.png';
   begin
-    if (Not FileExists(IncludePath + 'SPS\img\runescape_surface\0_0LRC.png')) then
+    if (Not FileExists(Name)) then
     begin
-      writeln('You did not download SPS image correctly');
-      writeln('It must go here: '+ToStr(IncludePath) + 'SPS\img\runescape_surface\0_0LRC.png');
-      TerminateScript;
+      writeln('No file, downloading');
+      SPSFile:=CreateFile(Name);
+      CloseFile(SPSFile);
+      SPSFile:= RewriteFile(Name, False);
+      WriteFileString(SPSFile, GetPage(Map));
+      CloseFile(SPSFile);
     end;
   end;
-  Result:= (FileExists(IncludePath + 'SPS\img\runescape_surface\0_0LRC.png'));
+  Result:= (FileExists(IncludePath + 'SPS\img\runescape_surface\0_0SP.png'));
 end;
 
 Procedure RequirementsCheck;
@@ -1635,7 +1740,7 @@ begin
 
     ConversationBox.Continue(True,True);
 
-    TypeSend(Superheats,False);
+    TypeSend(SuperheatKey,False);
     Wait(RandomRange(30,60));
 
     If FindDTM(GOLDDTM,X, Y, TabBackpack.GetBounds) Then
@@ -1729,9 +1834,14 @@ Begin
   AniTimer.Start;
   XPInvTimer.Start;
 
+
+
+
   MaxCoal:=RandomRange(60000,160000);
 
   Repeat
+
+    SmartImage.Clear;
     If CheckStuff Then
     Begin
       Wait(RandomRange(5000,6000));
@@ -2189,22 +2299,41 @@ Begin
   AutoUpdateMe;
   SmartEnableDrawing := True;
 
+  initPlayerForm(); // initiate your settings
+  runPlayerForm();  // run the form
+
+  // use this so the script doesn't continue if the user exits out of the form
+  if (not playerForm.isScriptReady) then
+    terminatescript;
+
+  declarePlayers();
+
+  If Players[CurrentPlayer].strings[0] = 'DirectX' Then
+    smartPlugins := ['d3d9.dll'];
+
   SetupSRL;
+
+
+  If Not IsLoggedIn Then
+  Begin
+    If Not Players[CurrentPlayer].Login Then
+      TerminateScript;
+
+    Writeln('Just loggedin, waiting a bit');
+    Wait(RandomRange(6000,10000));
+  End;
+
 
   If Not Debug Then
     DisableSRLDebug:=True;
 
-  DeclarePlayers;
-  If Not Players[CurrentPlayer].Login Then
-    TerminateScript;
-
-  Writeln('If you changed more than one character in the script to fix the antileech, you are wrong and probably broke something :)');
+  spsAnyAngle:=True;
   SPS.Setup('0_0LRC', 'Runescape_Surface\');
   Minimap.ClickCompass;
   MainScreen.SetAngle(MS_ANGLE_HIGH);
   Players[CurrentPlayer].FindMod := False;
 
-  //StartingExperience:=GetXPBarTotal;
+  StartingExperience:=ChatBox.GetXP;
   If FindNormalRandoms Then
     Wait(RandomRange(2000,3000));
 
@@ -2223,8 +2352,6 @@ Begin
   Timeout.Start;
   Timeout2.Reset;
   Timeout2.Start;
-
-  StartTime:=GetSystemTime;
 
   AddOnTerminate('F33DTM');
   If Debug Then
