@@ -75,7 +75,7 @@ Const
   Timeouts = True;                // ***Do you want script to shutdown if nothing has happened for several minutes?***
   Bir          = 13;              // ***Random minutes to add/subtract from how long until we break***
   Bfr          = 7;               // ***Random minutes to add/subjtract from break duraction***
-  ScriptVersion = '8.06';
+  ScriptVersion = '8.07';
   E = 200;
   F = 462;
   Debug = False;
@@ -738,7 +738,7 @@ Begin
       End;
       2:
       Begin
-        A:=105;  B:=44;   C:=400;  D:=300;
+        A:=105;  B:=44;   C:=380;  D:=300;
         Case I Of
           0: SpotDTM := DTMFromString('m6wAAAHic42ZgYEgD4kAgjgTiFCBOBeJSIM4HYl8gzgHiaiAuAGJ7IPYG4mAg9gRiYyi2BGIzKNsKiPWBuDjOkqEi2YahPdeFoTXbGUynh5owuJhJMzRlOjG05jgz1KbaM/jYyDHwAtUTixlJwEgAAAbREw8=');
           1: SpotDTM := DTMFromString('mrAAAAHic42BgYNBmZGCwBGIrIDYAYhkgVgNifSDmB2JXoBorIHYAYl8g9gPiACC2BWI7IE4PMWZwM5dm8LSSZWjNcWYoS7RmKIqzYGgDshszHRl4gWrwYUYCGAYAo0ELyA==');
@@ -893,7 +893,7 @@ Begin
     MouseBox(TabBackpack.GetBounds);
   End;
 
-  findColorsTolerance(tpa, 6392224, MainScreen.GetBounds, 5,colorSetting(2,0.05,0.46));    //outercolor
+  findColorsTolerance(tpa, 6326431, MainScreen.GetBounds, 6,colorSetting(2,0.09,0.45));    //outercolor
 
   ATPA := TPA.Cluster(15,25);
 
@@ -941,6 +941,8 @@ Begin
       If Length(TPA) > 5 Then
       Begin
         SetArrayLength(TBA, Length(TBA)+1);
+        ChestBox.Edit(+30,0,0,-10);
+        ChestBox.SetLimit(Mainscreen.GetBounds);
         TBA[High(TBA)] := ChestBox;
       End;
 
@@ -2309,7 +2311,7 @@ Begin
   declarePlayers();
 
   If Players[CurrentPlayer].strings[0] = 'DirectX' Then
-    smartPlugins := ['d3d9.dll'];
+    smartPlugins := ['OpenGL32.dll','d3d9.dll'];
 
   SetupSRL;
 
