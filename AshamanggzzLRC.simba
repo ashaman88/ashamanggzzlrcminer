@@ -75,7 +75,7 @@ Const
   Timeouts = True;                // ***Do you want script to shutdown if nothing has happened for several minutes?***
   Bir          = 13;              // ***Random minutes to add/subtract from how long until we break***
   Bfr          = 7;               // ***Random minutes to add/subjtract from break duraction***
-  ScriptVersion = '8.07';
+  ScriptVersion = '8.08';
   E = 200;
   F = 462;
   Debug = False;
@@ -162,7 +162,7 @@ Var
  CurrentBTime,Timeout,Timeout2,CoalTimer: TTimeMarker;
  StartingExperience, XPH,OresPH,HP,OldHP: Extended;
  HeatAlch,SafeBank,NoFamiliar: Boolean;
- Off,FunctionStop: String;
+ FunctionStop: String;
 
  {*******************************************************************************
 Function AutoupdateMe;
@@ -462,8 +462,7 @@ Begin
       Players[CurrentPlayer].ExitToLobby;
       Wait(RandomRange(2500,3500));
 
-      If Debug Then
-        Writeln('Loging back in');
+      Writeln('Loging back in');
 
       Players[CurrentPlayer].Login;
       Wait(RandomRange(2000,3000));
@@ -488,8 +487,6 @@ Begin
       Begin
         Minimap.ClickCompass;
         MainScreen.SetAngle(MS_ANGLE_HIGH);
-        If Debug Then
-          Writeln('Found squeal stuff');
         Result:=True;
       End;
 End;
@@ -501,11 +498,8 @@ Begin
   BankBox:=IntToBox(100,65,125,80);
   If Not PointInBox(SPS.GetPlayerPos,BankBox) Then
   Begin
-    If Debug Then
-    Begin
-      Writeln('Not at bank');
-      Writeln('bank coordinates: '+Off);
-    End;
+    Print('Not at bank');
+    Print('bank coordinates: '+toStr(SPS.GetPlayerPos));
   End Else
     Result:=True;
 End;
@@ -515,8 +509,7 @@ Var
   BankToLowestGold,BankToHighGold,LowToHighGold,LowGoldToCoal: TPointArray;
   Paths: T2DPointArray;
 Begin
-  If Debug Then
-    FunctionStop:= 'LRCPATHS: Entered';
+  FunctionStop:= 'LRCPATHS: Entered';
 
   CheckStuff;
 
@@ -541,12 +534,9 @@ Begin
   End;
 
   If Invert Then
-  Begin
     InvertTPA(Result);
-  End;
 
-  If Debug Then
-    FunctionStop:= 'LRCPATHS: Finished';
+  FunctionStop:= 'LRCPATHS: Finished';
 End;
 
 Function Runaways: Boolean;
@@ -554,41 +544,31 @@ Var
   FailRest: Integer;
   T: TTimeMarker;
 Begin
-  If Debug Then
-    FunctionStop:= 'Runaways: Entered';
+  FunctionStop:= 'Runaways: Entered';
 
-  Result:=False;
   CheckStuff;
   If Not IsLoggedIn Then
     Exit;
 
   If OldHP <= HPPercent Then
   Begin
-    If Debug Then
-      Writeln('Gained some HP');
+    Print('Gained some HP');
     If OldHP <> -1 Then
     Begin
-      If Debug Then
-        Writeln('Old HP level: '+ToStr(OldHP));
+      Print('Old HP level: '+ToStr(OldHP));
       OldHP:=HPPercent;
-      If Debug Then
-        Writeln('New HP level: '+ToStr(OldHP));
+      Print('New HP level: '+ToStr(OldHP));
       Exit;
     End;
   End Else
-    If Debug Then
-      Writeln('Lost some HP');
+    Print('Lost some HP');
 
-  If Debug Then
-    Writeln('Old HP level: '+ToStr(OldHP));
+  Print('Old HP level: '+ToStr(OldHP));
   OldHP:=HPPercent;
-  If Debug Then
-    Writeln('New HP level: '+ToStr(OldHP));
+  Print('New HP level: '+ToStr(OldHP));
 
   If ((HPPercent < (80))) Then
   Begin
-    If HPPercent=-1 Then
-      Exit;
     OldHP:=HPPercent;
     Writeln('HP LOW '+ToStr(HPPercent)+' RUNNING AWAY');
 
@@ -596,14 +576,12 @@ Begin
 
     If (Spot = 1) Or (Spot = 3) Then
     Begin
-      If Debug Then
-        Writeln('Running from low spots');
+      Print('Running from low spots');
       If Not SPS.WalkPath(LRCPaths(1, True)) Then
         Exit;
     End Else
     Begin
-      If Debug Then
-        Writeln('Running from high spot');
+      Print('Running from high spot');
       If Not SPS.WalkPath(LRCPaths(2, True)) Then
         Exit;
     End;
@@ -615,19 +593,16 @@ Begin
         Break;
     Until Not Minimap.IsPlayerMoving;
 
-    If Debug Then
-      Writeln('Checking if Monster is still there');
+    Print('Checking if Monster is still there');
 
     If Not AtBank Then
       If (Spot = 1) Or (Spot = 3) Then
       Begin
-        If Debug Then
-          Writeln('Running from low spots');
+        Print('Running from low spots');
         SPS.WalkPath(LRCPaths(1, True));
       End Else
       Begin
-        If Debug Then
-          Writeln('Running from high spot');
+        Print('Running from high spot');
         SPS.WalkPath(LRCPaths(2, True));
       End;
 
@@ -641,17 +616,11 @@ Begin
         Writeln('Low energy resting');
       Setrest;
       Repeat
-        Timeout.Reset;
         Timeout.Start;
-        Timeout2.Reset;
         Timeout2.Start;
         Wait(100);
         CheckStuff;
         If Not IsLoggedIn Then
-          Exit;
-        If Not SetRest Then
-          Inc(FailRest);
-        If FailRest>5 Then
           Exit;
       Until RunPercent >= 90;
       Minimap.ToggleRun(True);
@@ -666,26 +635,21 @@ Begin
 
     SetRest;
 
-    If Debug Then
-        Writeln('Waiting to heal');
+    Print('Waiting to heal');
 
     Repeat
       Wait(RandomRange(20000,40000));
       SmallRandomMouse;
       CheckStuff;
-      Timeout.Reset;
       Timeout.Start;
-      Timeout2.Reset;
       Timeout2.Start;
       If Not IsLoggedIn Then
         Break;
     Until((HPPercent > (69)));
 
-    If Debug Then
-      Writeln('All healed');
+    Print('All healed');
   End;
-  If Debug Then
-    FunctionStop:= 'Runaways: finished';
+  FunctionStop:= 'Runaways: finished';
 End;
 
 Procedure Moving;
@@ -693,6 +657,7 @@ Var
   T: TTimeMarker;
 Begin
   T.Start;
+  Exit;
   Repeat
     CheckStuff;
     If Runaways Then
@@ -1246,7 +1211,7 @@ begin
       CloseFile(SPSFile);
     end;
   end;
-  Result:= (FileExists(IncludePath + 'SPS\img\runescape_surface\0_0SP.png'));
+  Result:= (FileExists(IncludePath + 'SPS\img\runescape_surface\0_0LRC.png'));
 end;
 
 Procedure RequirementsCheck;
@@ -1995,21 +1960,22 @@ Begin
     FunctionStop:= 'Mining: Finished';
 End;
 
-Function FixPosition: Boolean;
+Procedure FixPosition;
 Var
   HighBox: TBox;
+  Off: String;
 Begin
-  If Debug Then
-    FunctionStop:= 'FixPosition: Entered';
-
-  Result:=False;
+  FunctionStop:= 'FixPosition: Entered';
 
   CheckStuff;
 
   If Not IsLoggedIn Then
     Exit;
 
-  If Spot=1 Then
+  If GoldDTMs Then
+    Exit;
+
+  If (Spot=1) Then
   Begin
     Off := ToStr(SPS.GetPlayerPos);
     If (Not(Off = '(258,366)')) And (Not(Off = '(254,366)')) And (Not(Off = '(258,366)')) Then
@@ -2020,7 +1986,6 @@ Begin
         Writeln('Off coordinates: '+Off);
       End;
       SPS.WalkToPos(Point(258,368));
-      Result:=True;
     End;
   End Else
   Begin
@@ -2033,12 +1998,10 @@ Begin
         Writeln('Off coordinates: '+Off);
       End;
       SPS.WalkToPos(Point(142,294));
-      Result:=True;
     End;
   End;
 
-  If Debug Then
-    FunctionStop:= 'FixPosition: Finished';
+  FunctionStop:= 'FixPosition: Finished';
 End;
 
 Procedure Mainloop;
@@ -2197,7 +2160,8 @@ Begin
           Exit;
 
         Moving;
-        FixPosition;
+        If Not GoldDTMs Then
+          FixPosition;
       End;
 
       If Spot=2 Then
@@ -2356,8 +2320,7 @@ Begin
   Timeout2.Start;
 
   AddOnTerminate('F33DTM');
-  If Debug Then
-    AddOnTerminate('LastRun');
+  AddOnTerminate('LastRun');
   SetDTM;
 
  { If ((Method = 2) Or (Method = 3) Or (Method = 4)) Then
@@ -2399,8 +2362,7 @@ Begin
 
  // SummoningRenew(PTS,True);
 
-  If Debug Then
-    FunctionStop:= 'Setup: Finished';
+ FunctionStop:= 'Setup: Finished';
 End;
 
 Begin
